@@ -159,9 +159,9 @@ app.get('/health/mail', async (req, res) => {
   }
 });
 
-// API routes will be added here
-// app.use('/api/mailbox', mailboxRoutes);
-// app.use('/api/mail', mailRoutes);
+// API routes
+import mailRoutes from './routes/mail';
+app.use('/api/mail', mailRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
