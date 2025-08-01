@@ -1,5 +1,5 @@
 {
-  "name": "@temp-mail/frontend",
+  "name": "@nnu/frontend",
   "version": "1.0.0",
   "description": "Frontend React application for temp mail website",
   "private": true,
@@ -13,7 +13,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@temp-mail/shared": "workspace:*",
+    "@nnu/shared": "file:../shared",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.14.0",

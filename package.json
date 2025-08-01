@@ -1,5 +1,5 @@
 {
-  "name": "temp-mail-website",
+  "name": "nnu-mail-service",
   "version": "1.0.0",
   "description": "Temporary email service using nnu.edu.kg domain",
   "private": true,

@@ -16,24 +16,28 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Security middleware
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", 'data:', 'https:'],
+      },
     },
-  },
-}));
+  })
+);
 
 // CORS configuration
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
 
 // Rate limiting
 const limiter = rateLimit({
@@ -43,8 +47,8 @@ const limiter = rateLimit({
     error: {
       type: 'RATE_LIMIT_ERROR',
       message: 'Too many requests from this IP, please try again later.',
-      code: 'RATE_LIMIT_EXCEEDED'
-    }
+      code: 'RATE_LIMIT_EXCEEDED',
+    },
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -57,20 +61,22 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Logging middleware
-app.use(morgan('combined', {
-  stream: {
-    write: (message: string) => {
-      logger.info(message.trim());
-    }
-  }
-}));
+app.use(
+  morgan('combined', {
+    stream: {
+      write: (message: string) => {
+        logger.info(message.trim());
+      },
+    },
+  })
+);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    uptime: process.uptime(),
   });
 });
 
@@ -87,32 +93,34 @@ app.use('*', (req, res) => {
     error: {
       type: 'NOT_FOUND_ERROR',
       message: 'Route not found',
-      code: 'ROUTE_NOT_FOUND'
-    }
+      code: 'ROUTE_NOT_FOUND',
+    },
   });
 });
 
-// Start server
-const server = app.listen(PORT, () => {
-  logger.info(`Server running on port ${PORT}`);
-  logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    logger.info('Process terminated');
-    process.exit(0);
+// Start server only if not in test environment
+if (process.env.NODE_ENV !== 'test') {
+  const server = app.listen(PORT, () => {
+    logger.info(`Server running on port ${PORT}`);
+    logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
   });
-});
 
-process.on('SIGINT', () => {
-  logger.info('SIGINT received, shutting down gracefully');
-  server.close(() => {
-    logger.info('Process terminated');
-    process.exit(0);
+  // Graceful shutdown
+  process.on('SIGTERM', () => {
+    logger.info('SIGTERM received, shutting down gracefully');
+    server.close(() => {
+      logger.info('Process terminated');
+      process.exit(0);
+    });
   });
-});
+
+  process.on('SIGINT', () => {
+    logger.info('SIGINT received, shutting down gracefully');
+    server.close(() => {
+      logger.info('Process terminated');
+      process.exit(0);
+    });
+  });
+}
 
 export default app;

@@ -25,7 +25,7 @@
   - _Requirements: 1.1, 1.2, 5.2_
 
 - [ ] 3. 后端核心服务实现
-- [-] 3.1 搭建 Express 服务器和中间件
+- [x] 3.1 搭建 Express 服务器和中间件
 
   - 创建 Express 应用，配置 CORS、body-parser 等中间件
   - 实现 JWT 认证中间件
