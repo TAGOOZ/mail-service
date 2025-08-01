@@ -216,13 +216,15 @@ class Logger {
 // Create singleton logger instance
 export const logger = new Logger();
 
-// Rotate logs daily
-setInterval(
-  () => {
-    logger.rotateLog();
-  },
-  24 * 60 * 60 * 1000
-); // 24 hours
+// Rotate logs daily (only in non-test environment)
+if (process.env.NODE_ENV !== 'test') {
+  setInterval(
+    () => {
+      logger.rotateLog();
+    },
+    24 * 60 * 60 * 1000
+  ); // 24 hours
+}
 
 // Export logger types for use in other modules
 export type { LogEntry };

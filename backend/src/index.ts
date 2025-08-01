@@ -8,6 +8,7 @@ import rateLimit from 'express-rate-limit';
 import { errorHandler } from './middleware/errorHandler';
 import { authMiddleware } from './middleware/auth';
 import { logger } from './utils/logger';
+import { DatabaseService } from './services/database';
 
 // Load environment variables
 dotenv.config();
@@ -72,12 +73,48 @@ app.use(
 );
 
 // Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-  });
+app.get('/health', async (req, res) => {
+  try {
+    const dbHealth = await DatabaseService.getHealthStatus();
+    const status = dbHealth.overall ? 'ok' : 'degraded';
+    const statusCode = dbHealth.overall ? 200 : 503;
+
+    res.status(statusCode).json({
+      status,
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      database: dbHealth,
+    });
+  } catch (error) {
+    logger.error('Health check failed:', error);
+    res.status(503).json({
+      status: 'error',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      database: {
+        mongodb: false,
+        redis: false,
+        overall: false,
+      },
+    });
+  }
+});
+
+// Database migration status endpoint
+app.get('/health/migrations', async (req, res) => {
+  try {
+    const migrationStatus = await DatabaseService.getMigrationStatus();
+    res.status(200).json(migrationStatus);
+  } catch (error) {
+    logger.error('Migration status check failed:', error);
+    res.status(500).json({
+      error: {
+        type: 'INTERNAL_ERROR',
+        message: 'Failed to get migration status',
+        code: 'MIGRATION_STATUS_ERROR',
+      },
+    });
+  }
 });
 
 // API routes will be added here
@@ -98,29 +135,47 @@ app.use('*', (req, res) => {
   });
 });
 
-// Start server only if not in test environment
+// Initialize and start server
+async function startServer() {
+  try {
+    // Initialize database connections
+    await DatabaseService.initialize();
+
+    // Start server only if not in test environment
+    if (process.env.NODE_ENV !== 'test') {
+      const server = app.listen(PORT, () => {
+        logger.info(`Server running on port ${PORT}`);
+        logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      });
+
+      // Graceful shutdown
+      const gracefulShutdown = async (signal: string) => {
+        logger.info(`${signal} received, shutting down gracefully`);
+
+        server.close(async () => {
+          try {
+            await DatabaseService.shutdown();
+            logger.info('Process terminated');
+            process.exit(0);
+          } catch (error) {
+            logger.error('Error during shutdown:', error);
+            process.exit(1);
+          }
+        });
+      };
+
+      process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+      process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+    }
+  } catch (error) {
+    logger.error('Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+// Start the server
 if (process.env.NODE_ENV !== 'test') {
-  const server = app.listen(PORT, () => {
-    logger.info(`Server running on port ${PORT}`);
-    logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  });
-
-  // Graceful shutdown
-  process.on('SIGTERM', () => {
-    logger.info('SIGTERM received, shutting down gracefully');
-    server.close(() => {
-      logger.info('Process terminated');
-      process.exit(0);
-    });
-  });
-
-  process.on('SIGINT', () => {
-    logger.info('SIGINT received, shutting down gracefully');
-    server.close(() => {
-      logger.info('Process terminated');
-      process.exit(0);
-    });
-  });
+  startServer();
 }
 
 export default app;

@@ -9,6 +9,7 @@
     "start": "node dist/index.js",
     "test": "NODE_ENV=test jest",
     "test:watch": "NODE_ENV=test jest --watch",
+    "test:db": "NODE_ENV=test ts-node src/scripts/test-database.ts",
     "lint": "eslint src/**/*.ts",
     "type-check": "tsc --noEmit"
   },
