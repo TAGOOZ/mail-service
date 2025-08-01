@@ -10,6 +10,7 @@ import { authMiddleware } from './middleware/auth';
 import { logger } from './utils/logger';
 import { DatabaseService } from './services/database';
 import { CleanupScheduler } from './services/cleanupScheduler';
+import { mailReceivingService } from './services/mailReceivingService';
 
 // Load environment variables
 dotenv.config();
@@ -138,6 +139,26 @@ app.get('/health/cleanup', async (req, res) => {
   }
 });
 
+// Mail service status endpoint
+app.get('/health/mail', async (req, res) => {
+  try {
+    const mailServiceStatus = mailReceivingService.getStatus();
+    res.status(200).json({
+      mailService: mailServiceStatus,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Mail service status check failed:', error);
+    res.status(500).json({
+      error: {
+        type: 'INTERNAL_ERROR',
+        message: 'Failed to get mail service status',
+        code: 'MAIL_SERVICE_STATUS_ERROR',
+      },
+    });
+  }
+});
+
 // API routes will be added here
 // app.use('/api/mailbox', mailboxRoutes);
 // app.use('/api/mail', mailRoutes);
@@ -165,6 +186,9 @@ async function startServer() {
     // Start cleanup scheduler
     CleanupScheduler.start();
 
+    // Start mail receiving service
+    await mailReceivingService.start();
+
     // Start server only if not in test environment
     if (process.env.NODE_ENV !== 'test') {
       const server = app.listen(PORT, () => {
@@ -180,6 +204,9 @@ async function startServer() {
           try {
             // Stop cleanup scheduler
             CleanupScheduler.stop();
+
+            // Stop mail receiving service
+            await mailReceivingService.stop();
 
             await DatabaseService.shutdown();
             logger.info('Process terminated');

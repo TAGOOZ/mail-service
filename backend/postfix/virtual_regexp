@@ -1,0 +1,3 @@
+# Virtual alias mapping for temp mail addresses
+# All addresses @nnu.edu.kg should be accepted
+/^(.+)@nnu\.edu\.kg$/ $1@nnu.edu.kg

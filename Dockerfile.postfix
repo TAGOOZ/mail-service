@@ -1,0 +1,65 @@
+FROM ubuntu:22.04
+
+# Install Postfix and required packages
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    postfix \
+    postfix-pcre \
+    rsyslog \
+    supervisor \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy custom Postfix configuration
+COPY backend/postfix/main.cf /etc/postfix/main.cf
+COPY backend/postfix/virtual_regexp /etc/postfix/virtual_regexp
+COPY backend/postfix/transport_regexp /etc/postfix/transport_regexp
+
+# Create supervisor configuration
+RUN echo '[supervisord]' > /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'nodaemon=true' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo '' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo '[program:rsyslog]' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'command=/usr/sbin/rsyslogd -n' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'autostart=true' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'autorestart=true' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo '' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo '[program:postfix]' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'command=/usr/sbin/postfix start-fg' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'autostart=true' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'autorestart=true' >> /etc/supervisor/conf.d/supervisord.conf
+
+# Set up postfix maps
+RUN postmap /etc/postfix/virtual_regexp && \
+    postmap /etc/postfix/transport_regexp
+
+# Create startup script
+RUN echo '#!/bin/bash' > /start.sh && \
+    echo 'set -e' >> /start.sh && \
+    echo '' >> /start.sh && \
+    echo '# Update hostname if provided' >> /start.sh && \
+    echo 'if [ ! -z "$POSTFIX_MYHOSTNAME" ]; then' >> /start.sh && \
+    echo '    postconf -e "myhostname = $POSTFIX_MYHOSTNAME"' >> /start.sh && \
+    echo 'fi' >> /start.sh && \
+    echo '' >> /start.sh && \
+    echo 'if [ ! -z "$POSTFIX_MYDOMAIN" ]; then' >> /start.sh && \
+    echo '    postconf -e "mydomain = $POSTFIX_MYDOMAIN"' >> /start.sh && \
+    echo 'fi' >> /start.sh && \
+    echo '' >> /start.sh && \
+    echo 'if [ ! -z "$POSTFIX_MYORIGIN" ]; then' >> /start.sh && \
+    echo '    postconf -e "myorigin = $POSTFIX_MYORIGIN"' >> /start.sh && \
+    echo 'fi' >> /start.sh && \
+    echo '' >> /start.sh && \
+    echo '# Update transport to point to backend service' >> /start.sh && \
+    echo 'sed -i "s/localhost:2525/backend:2525/g" /etc/postfix/transport_regexp' >> /start.sh && \
+    echo 'postmap /etc/postfix/transport_regexp' >> /start.sh && \
+    echo '' >> /start.sh && \
+    echo '# Start supervisor' >> /start.sh && \
+    echo 'exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf' >> /start.sh && \
+    chmod +x /start.sh
+
+# Expose SMTP ports
+EXPOSE 25 587
+
+# Start the services
+CMD ["/start.sh"]
