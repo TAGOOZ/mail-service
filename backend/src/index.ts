@@ -9,6 +9,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { authMiddleware } from './middleware/auth';
 import { logger } from './utils/logger';
 import { DatabaseService } from './services/database';
+import { CleanupScheduler } from './services/cleanupScheduler';
 
 // Load environment variables
 dotenv.config();
@@ -117,6 +118,26 @@ app.get('/health/migrations', async (req, res) => {
   }
 });
 
+// Cleanup scheduler status endpoint
+app.get('/health/cleanup', async (req, res) => {
+  try {
+    const schedulerStatus = CleanupScheduler.getStatus();
+    res.status(200).json({
+      scheduler: schedulerStatus,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Cleanup status check failed:', error);
+    res.status(500).json({
+      error: {
+        type: 'INTERNAL_ERROR',
+        message: 'Failed to get cleanup status',
+        code: 'CLEANUP_STATUS_ERROR',
+      },
+    });
+  }
+});
+
 // API routes will be added here
 // app.use('/api/mailbox', mailboxRoutes);
 // app.use('/api/mail', mailRoutes);
@@ -141,6 +162,9 @@ async function startServer() {
     // Initialize database connections
     await DatabaseService.initialize();
 
+    // Start cleanup scheduler
+    CleanupScheduler.start();
+
     // Start server only if not in test environment
     if (process.env.NODE_ENV !== 'test') {
       const server = app.listen(PORT, () => {
@@ -154,6 +178,9 @@ async function startServer() {
 
         server.close(async () => {
           try {
+            // Stop cleanup scheduler
+            CleanupScheduler.stop();
+
             await DatabaseService.shutdown();
             logger.info('Process terminated');
             process.exit(0);
