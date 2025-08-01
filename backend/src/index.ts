@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
+import { createServer } from 'http';
 
 import { errorHandler } from './middleware/errorHandler';
 import { authMiddleware } from './middleware/auth';
@@ -11,11 +12,13 @@ import { logger } from './utils/logger';
 import { DatabaseService } from './services/database';
 import { CleanupScheduler } from './services/cleanupScheduler';
 import { mailReceivingService } from './services/mailReceivingService';
+import { webSocketService } from './services/websocketService';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
+const httpServer = createServer(app);
 const PORT = process.env.PORT || 3001;
 
 // Security middleware
@@ -159,6 +162,26 @@ app.get('/health/mail', async (req, res) => {
   }
 });
 
+// WebSocket service status endpoint
+app.get('/health/websocket', async (req, res) => {
+  try {
+    const wsStats = webSocketService.getStats();
+    res.status(200).json({
+      websocket: wsStats,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('WebSocket service status check failed:', error);
+    res.status(500).json({
+      error: {
+        type: 'INTERNAL_ERROR',
+        message: 'Failed to get WebSocket service status',
+        code: 'WEBSOCKET_STATUS_ERROR',
+      },
+    });
+  }
+});
+
 // API routes
 import mailRoutes from './routes/mail';
 app.use('/api/mail', mailRoutes);
@@ -189,11 +212,24 @@ async function startServer() {
     // Start mail receiving service
     await mailReceivingService.start();
 
+    // Initialize WebSocket service
+    webSocketService.initialize(httpServer);
+
+    // Connect mail receiving service with WebSocket service
+    mailReceivingService.on('mailReceived', async (event: any) => {
+      try {
+        await webSocketService.broadcastNewMail(event.mailboxId, event.mail);
+      } catch (error) {
+        logger.error('Failed to broadcast new mail via WebSocket:', error);
+      }
+    });
+
     // Start server only if not in test environment
     if (process.env.NODE_ENV !== 'test') {
-      const server = app.listen(PORT, () => {
+      const server = httpServer.listen(PORT, () => {
         logger.info(`Server running on port ${PORT}`);
         logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+        logger.info('WebSocket server initialized');
       });
 
       // Graceful shutdown
@@ -202,6 +238,9 @@ async function startServer() {
 
         server.close(async () => {
           try {
+            // Stop WebSocket service
+            await webSocketService.shutdown();
+
             // Stop cleanup scheduler
             CleanupScheduler.stop();
 
