@@ -5,6 +5,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import Layout from './components/Layout';
 import HomePage from './pages/HomePage';
 import MailboxPage from './pages/MailboxPage';
+import MailDetailPage from './pages/MailDetailPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/mailbox/:mailboxId" element={<MailboxPage />} />
+            <Route path="/mailbox/:mailboxId/mail/:mailId" element={<MailDetailPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Layout>

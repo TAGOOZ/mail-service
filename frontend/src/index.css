@@ -27,3 +27,102 @@
     @apply bg-white rounded-lg shadow-sm border border-gray-200;
   }
 }
+
+/* Ma
+il HTML Content Styles */
+.mail-html-content {
+  @apply text-gray-800 leading-relaxed;
+}
+
+.mail-html-content p {
+  @apply mb-4;
+}
+
+.mail-html-content h1,
+.mail-html-content h2,
+.mail-html-content h3,
+.mail-html-content h4,
+.mail-html-content h5,
+.mail-html-content h6 {
+  @apply font-semibold mb-3 mt-6;
+}
+
+.mail-html-content h1 {
+  @apply text-2xl;
+}
+
+.mail-html-content h2 {
+  @apply text-xl;
+}
+
+.mail-html-content h3 {
+  @apply text-lg;
+}
+
+.mail-html-content strong,
+.mail-html-content b {
+  @apply font-semibold;
+}
+
+.mail-html-content em,
+.mail-html-content i {
+  @apply italic;
+}
+
+.mail-html-content u {
+  @apply underline;
+}
+
+.mail-html-content a {
+  @apply text-blue-600 hover:text-blue-800 underline;
+}
+
+.mail-html-content ul,
+.mail-html-content ol {
+  @apply mb-4 pl-6;
+}
+
+.mail-html-content ul {
+  @apply list-disc;
+}
+
+.mail-html-content ol {
+  @apply list-decimal;
+}
+
+.mail-html-content li {
+  @apply mb-1;
+}
+
+.mail-html-content table {
+  @apply w-full border-collapse border border-gray-300 mb-4;
+}
+
+.mail-html-content th,
+.mail-html-content td {
+  @apply border border-gray-300 px-3 py-2 text-left;
+}
+
+.mail-html-content th {
+  @apply bg-gray-100 font-semibold;
+}
+
+.mail-html-content img {
+  @apply max-w-full h-auto rounded-md;
+}
+
+.mail-html-content blockquote {
+  @apply border-l-4 border-gray-300 pl-4 italic text-gray-600 mb-4;
+}
+
+.mail-html-content pre {
+  @apply bg-gray-100 p-4 rounded-md overflow-x-auto mb-4;
+}
+
+.mail-html-content code {
+  @apply bg-gray-100 px-2 py-1 rounded text-sm font-mono;
+}
+
+.mail-html-content pre code {
+  @apply bg-transparent p-0;
+}
