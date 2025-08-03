@@ -112,7 +112,8 @@ class WebSocketService {
    * 获取 WebSocket 服务器 URL
    */
   private getSocketUrl(): string {
-    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
+    // Use environment variable or default to current host
+    const apiBaseUrl = (import.meta as any).env?.VITE_API_BASE_URL || '';
 
     // 如果是相对路径，构建完整的 WebSocket URL
     if (apiBaseUrl.startsWith('/')) {
@@ -121,10 +122,16 @@ class WebSocketService {
     }
 
     // 如果是完整 URL，替换协议
-    return apiBaseUrl.replace(
-      /^https?:/,
-      window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    );
+    if (apiBaseUrl) {
+      return apiBaseUrl.replace(
+        /^https?:/,
+        window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+      );
+    }
+
+    // Default to current host
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${protocol}//${window.location.host}`;
   }
 
   /**

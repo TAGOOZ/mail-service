@@ -22,7 +22,7 @@ const MailboxPage: React.FC = () => {
     generateMailbox
   } = useMailbox();
   
-  const { requestNotificationPermission } = useWebSocket();
+  const { requestNotificationPermission, isConnected } = useWebSocket();
   const { 
     mails, 
     totalMails, 
@@ -222,6 +222,7 @@ const MailboxPage: React.FC = () => {
         loading={mailsLoading}
         error={mailsError}
         hasMore={hasMoreMails}
+        isConnected={isConnected}
         onLoadMore={handleLoadMore}
         onRefresh={handleRefresh}
         onMailClick={handleMailClick}

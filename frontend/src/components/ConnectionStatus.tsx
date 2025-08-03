@@ -1,80 +1,74 @@
 import React from 'react';
-import { Wifi, WifiOff, RotateCw, AlertTriangle } from 'lucide-react';
-import { ConnectionStatus as Status } from '../services/websocketService';
+import { Wifi, WifiOff, RotateCcw, AlertTriangle } from 'lucide-react';
 
 interface ConnectionStatusProps {
-  status: Status;
+  isConnected: boolean;
+  isReconnecting?: boolean;
+  hasError?: boolean;
   className?: string;
 }
 
-const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ 
-  status, 
-  className = '' 
+const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
+  isConnected,
+  isReconnecting = false,
+  hasError = false,
+  className = '',
 }) => {
   const getStatusConfig = () => {
-    switch (status) {
-      case Status.CONNECTED:
-        return {
-          icon: Wifi,
-          text: '实时连接',
-          color: 'text-green-600',
-          bgColor: 'bg-green-50',
-          borderColor: 'border-green-200',
-        };
-      case Status.CONNECTING:
-        return {
-          icon: RotateCw,
-          text: '连接中...',
-          color: 'text-blue-600',
-          bgColor: 'bg-blue-50',
-          borderColor: 'border-blue-200',
-          animate: true,
-        };
-      case Status.RECONNECTING:
-        return {
-          icon: RotateCw,
-          text: '重连中...',
-          color: 'text-yellow-600',
-          bgColor: 'bg-yellow-50',
-          borderColor: 'border-yellow-200',
-          animate: true,
-        };
-      case Status.ERROR:
-        return {
-          icon: AlertTriangle,
-          text: '连接错误',
-          color: 'text-red-600',
-          bgColor: 'bg-red-50',
-          borderColor: 'border-red-200',
-        };
-      case Status.DISCONNECTED:
-      default:
-        return {
-          icon: WifiOff,
-          text: '未连接',
-          color: 'text-gray-600',
-          bgColor: 'bg-gray-50',
-          borderColor: 'border-gray-200',
-        };
+    if (hasError) {
+      return {
+        icon: <AlertTriangle className="h-4 w-4" />,
+        text: '连接错误',
+        color: 'text-red-600',
+        bgColor: 'bg-red-100',
+        dotColor: 'bg-red-500',
+      };
     }
+
+    if (isReconnecting) {
+      return {
+        icon: <RotateCcw className="h-4 w-4 animate-spin" />,
+        text: '重新连接中',
+        color: 'text-orange-600',
+        bgColor: 'bg-orange-100',
+        dotColor: 'bg-orange-500',
+      };
+    }
+
+    if (isConnected) {
+      return {
+        icon: <Wifi className="h-4 w-4" />,
+        text: '实时连接',
+        color: 'text-green-600',
+        bgColor: 'bg-green-100',
+        dotColor: 'bg-green-500 animate-pulse',
+      };
+    }
+
+    return {
+      icon: <WifiOff className="h-4 w-4" />,
+      text: '连接断开',
+      color: 'text-red-600',
+      bgColor: 'bg-red-100',
+      dotColor: 'bg-red-500',
+    };
   };
 
   const config = getStatusConfig();
-  const Icon = config.icon;
 
   return (
-    <div
-      className={`
-        inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-medium
-        ${config.color} ${config.bgColor} ${config.borderColor}
-        ${className}
-      `}
-    >
-      <Icon 
-        size={14} 
-        className={config.animate ? 'animate-spin' : ''} 
-      />
-      <span>{config.text}</span>
+    <div className={`flex items-center space-x-2 ${className}`}>
+      <div className={`p-1 rounded-full ${config.bgColor}`}>
+        <div className={config.color}>
+          {config.icon}
+        </div>
+      </div>
+      <div className="flex items-center space-x-1">
+        <div className={`w-2 h-2 rounded-full ${config.dotColor}`} />
+        <span className={`text-sm font-medium ${config.color}`}>
+          {config.text}
+        </span>
+      </div>
     </div>
   );
 };

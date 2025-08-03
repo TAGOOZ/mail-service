@@ -15,12 +15,14 @@ import {
   MailX
 } from 'lucide-react';
 import { Mail as MailType } from '../lib/mailboxApi';
+import ConnectionStatus from './ConnectionStatus';
 
 interface MailListProps {
   mails: MailType[];
   loading: boolean;
   error: string | null;
   hasMore: boolean;
+  isConnected?: boolean;
   onLoadMore: () => void;
   onRefresh: () => void;
   onMailClick: (mailId: string) => void;
@@ -109,6 +111,7 @@ const MailList: React.FC<MailListProps> = ({
   loading,
   error,
   hasMore,
+  isConnected = false,
   onLoadMore,
   onRefresh,
   onMailClick,
@@ -243,9 +246,13 @@ const MailList: React.FC<MailListProps> = ({
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-gray-900">
-            收件箱 ({filteredMails.length})
-          </h2>
+          <div className="flex items-center space-x-3">
+            <h2 className="text-xl font-semibold text-gray-900">
+              收件箱 ({filteredMails.length})
+            </h2>
+            {/* Connection Status Indicator */}
+            <ConnectionStatus isConnected={isConnected} />
+          </div>
           <div className="flex items-center space-x-2">
             {mails.length > 0 && (
               <>
@@ -374,7 +381,14 @@ const MailList: React.FC<MailListProps> = ({
           <div className="text-center py-12">
             <Mail className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-500 mb-2">暂无邮件</h3>
-            <p className="text-gray-400">新邮件将会显示在这里</p>
+            <p className="text-gray-400">
+              新邮件将会显示在这里
+              {isConnected && (
+                <span className="block mt-2 text-green-600 text-sm">
+                  📡 实时连接已建立，等待新邮件...
+                </span>
+              )}
+            </p>
           </div>
         ) : filteredMails.length === 0 ? (
           <div className="text-center py-12">
@@ -450,6 +464,24 @@ const MailItem: React.FC<MailItemProps> = ({
   onMarkAsRead,
   onMarkAsUnread,
 }) => {
+  const [isNewMail, setIsNewMail] = React.useState(false);
+
+  // Check if this is a new mail (received in the last 10 seconds)
+  React.useEffect(() => {
+    const receivedTime = new Date(mail.receivedAt).getTime();
+    const now = Date.now();
+    const timeDiff = now - receivedTime;
+    
+    if (timeDiff < 10000) { // 10 seconds
+      setIsNewMail(true);
+      // Remove the "new" indicator after 30 seconds
+      const timer = setTimeout(() => {
+        setIsNewMail(false);
+      }, 30000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [mail.receivedAt]);
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -496,9 +528,11 @@ const MailItem: React.FC<MailItemProps> = ({
 
   return (
     <div
-      className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
+      className={`p-4 hover:bg-gray-50 cursor-pointer transition-all duration-300 ${
         isSelected ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
-      } ${!mail.isRead ? 'bg-blue-50/30' : ''}`}
+      } ${!mail.isRead ? 'bg-blue-50/30' : ''} ${
+        isNewMail ? 'bg-green-50 border-l-4 border-l-green-500 animate-pulse' : ''
+      }`}
       onClick={onClick}
     >
       <div className="flex items-start space-x-3">
@@ -522,9 +556,14 @@ const MailItem: React.FC<MailItemProps> = ({
               }`}>
                 {mail.from}
               </span>
-              {!mail.isRead && (
+              {isNewMail && (
+                <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full flex-shrink-0 animate-bounce">
+                  刚收到
+                </span>
+              )}
+              {!mail.isRead && !isNewMail && (
                 <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full flex-shrink-0">
-                  新邮件
+                  未读
                 </span>
               )}
               {mail.attachments.length > 0 && (

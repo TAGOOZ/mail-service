@@ -123,10 +123,22 @@ describe('MailList', () => {
   });
 
   it('shows new mail badge for unread mails', () => {
-    render(<MailList {...defaultProps} />);
+    // Create a mail that was just received (within 10 seconds)
+    const newMail = {
+      ...mockMails[0],
+      receivedAt: new Date(Date.now() - 5000).toISOString(), // 5 seconds ago
+      isRead: false,
+    };
     
-    const newMailBadges = screen.getAllByText('新邮件');
-    expect(newMailBadges).toHaveLength(1); // Only one unread mail
+    const propsWithNewMail = {
+      ...defaultProps,
+      mails: [newMail, mockMails[1]],
+    };
+    
+    render(<MailList {...propsWithNewMail} />);
+    
+    // Should show "刚收到" for the new mail
+    expect(screen.getByText('刚收到')).toBeInTheDocument();
   });
 
   it('shows attachment icon for mails with attachments', () => {

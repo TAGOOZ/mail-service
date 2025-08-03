@@ -14,6 +14,149 @@ import {
 import toast from 'react-hot-toast';
 
 /**
+ * 播放通知声音
+ */
+const playNotificationSound = () => {
+  try {
+    // 尝试播放音频文件
+    const audio = new Audio('/notification.mp3');
+    audio.volume = 0.3;
+    audio.play().catch(() => {
+      // 如果音频文件播放失败，使用 Web Audio API 生成简单的提示音
+      createBeepSound();
+    });
+  } catch (error) {
+    // 如果音频文件不存在，使用 Web Audio API 生成简单的提示音
+    createBeepSound();
+  }
+};
+
+/**
+ * 使用 Web Audio API 创建提示音
+ */
+const createBeepSound = () => {
+  try {
+    const audioContext = new (window.AudioContext ||
+      (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.frequency.value = 800; // 频率
+    oscillator.type = 'sine';
+
+    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.01);
+    gainNode.gain.exponentialRampToValueAtTime(
+      0.01,
+      audioContext.currentTime + 0.3
+    );
+
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.3);
+  } catch (error) {
+    console.warn('无法播放通知声音:', error);
+  }
+};
+
+/**
+ * 添加页面标题闪烁通知
+ */
+const addTitleNotification = () => {
+  const originalTitle = document.title;
+  let isFlashing = true;
+  let flashCount = 0;
+  const maxFlashes = 6;
+
+  const flashInterval = setInterval(() => {
+    if (flashCount >= maxFlashes) {
+      document.title = originalTitle;
+      clearInterval(flashInterval);
+      return;
+    }
+
+    document.title = isFlashing ? '📧 新邮件!' : originalTitle;
+    isFlashing = !isFlashing;
+    flashCount++;
+  }, 1000);
+
+  // 如果用户聚焦窗口，停止闪烁
+  const handleFocus = () => {
+    document.title = originalTitle;
+    clearInterval(flashInterval);
+    window.removeEventListener('focus', handleFocus);
+  };
+
+  window.addEventListener('focus', handleFocus);
+};
+
+/**
+ * 播放警告声音
+ */
+const playWarningSound = () => {
+  try {
+    const audioContext = new (window.AudioContext ||
+      (window as any).webkitAudioContext)();
+
+    // 创建两个音调的警告声
+    const createTone = (
+      frequency: number,
+      startTime: number,
+      duration: number
+    ) => {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.frequency.value = frequency;
+      oscillator.type = 'sine';
+
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(0.15, startTime + 0.01);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+
+      oscillator.start(startTime);
+      oscillator.stop(startTime + duration);
+    };
+
+    // 播放两个音调
+    createTone(600, audioContext.currentTime, 0.3);
+    createTone(800, audioContext.currentTime + 0.4, 0.3);
+  } catch (error) {
+    console.warn('无法播放警告声音:', error);
+  }
+};
+
+/**
+ * 添加邮箱过期标题警告
+ */
+const addExpiryTitleWarning = (minutesLeft: number) => {
+  const originalTitle = document.title;
+  const warningTitle = `⏰ ${minutesLeft}分钟后过期`;
+
+  document.title = warningTitle;
+
+  // 30秒后恢复原标题
+  setTimeout(() => {
+    if (document.title === warningTitle) {
+      document.title = originalTitle;
+    }
+  }, 30000);
+
+  // 如果用户聚焦窗口，立即恢复标题
+  const handleFocus = () => {
+    document.title = originalTitle;
+    window.removeEventListener('focus', handleFocus);
+  };
+
+  window.addEventListener('focus', handleFocus);
+};
+
+/**
  * WebSocket 连接管理 Hook
  */
 export const useWebSocket = () => {
@@ -35,17 +178,45 @@ export const useWebSocket = () => {
       switch (status) {
         case ConnectionStatus.CONNECTED:
           if (isSubscribedRef.current) {
-            toast.success('实时连接已建立', { duration: 2000 });
+            toast.success('📡 实时连接已建立', {
+              duration: 2000,
+              style: {
+                background: '#F0FDF4',
+                border: '1px solid #BBF7D0',
+                color: '#166534',
+              },
+            });
           }
           break;
         case ConnectionStatus.DISCONNECTED:
-          toast.error('实时连接已断开', { duration: 3000 });
+          toast.error('📡 实时连接已断开', {
+            duration: 3000,
+            style: {
+              background: '#FEF2F2',
+              border: '1px solid #FECACA',
+              color: '#DC2626',
+            },
+          });
           break;
         case ConnectionStatus.RECONNECTING:
-          toast.loading('正在重新连接...', { duration: 2000 });
+          toast.loading('🔄 正在重新连接...', {
+            duration: 2000,
+            style: {
+              background: '#FEF3C7',
+              border: '1px solid #FDE68A',
+              color: '#D97706',
+            },
+          });
           break;
         case ConnectionStatus.ERROR:
-          toast.error('连接出现错误，请刷新页面', { duration: 5000 });
+          toast.error('❌ 连接出现错误，请刷新页面', {
+            duration: 5000,
+            style: {
+              background: '#FEF2F2',
+              border: '1px solid #FECACA',
+              color: '#DC2626',
+            },
+          });
           break;
       }
     },
@@ -59,7 +230,16 @@ export const useWebSocket = () => {
     (data: NewMailEventData) => {
       // 只处理当前邮箱的邮件
       if (state.currentMailbox && data.mailboxId === state.currentMailbox.id) {
-        addNewMail(data.mail);
+        // 转换 Date 对象为字符串以匹配前端类型
+        const mailForFrontend = {
+          ...data.mail,
+          receivedAt:
+            data.mail.receivedAt instanceof Date
+              ? data.mail.receivedAt.toISOString()
+              : data.mail.receivedAt,
+        };
+
+        addNewMail(mailForFrontend);
 
         // 显示新邮件通知
         toast.success(`收到新邮件: ${data.mail.subject || '(无主题)'}`, {
@@ -67,25 +247,32 @@ export const useWebSocket = () => {
           icon: '📧',
         });
 
-        // 播放通知声音（如果浏览器支持）
-        try {
-          const audio = new Audio('/notification.mp3');
-          audio.volume = 0.3;
-          audio.play().catch(() => {
-            // 忽略播放失败（可能是用户未交互过页面）
-          });
-        } catch (error) {
-          // 忽略音频播放错误
-        }
+        // 播放通知声音
+        playNotificationSound();
 
         // 发送浏览器通知（如果用户已授权）
         if (Notification.permission === 'granted') {
-          new Notification('新邮件', {
+          const notification = new Notification('新邮件', {
             body: `来自: ${data.mail.from}\n主题: ${data.mail.subject || '(无主题)'}`,
             icon: '/favicon.ico',
             tag: 'new-mail',
+            requireInteraction: false,
           });
+
+          // 自动关闭通知
+          setTimeout(() => {
+            notification.close();
+          }, 5000);
+
+          // 点击通知时聚焦窗口
+          notification.onclick = () => {
+            window.focus();
+            notification.close();
+          };
         }
+
+        // 添加页面标题闪烁效果
+        addTitleNotification();
       }
     },
     [state.currentMailbox, addNewMail]
@@ -100,19 +287,37 @@ export const useWebSocket = () => {
         const minutesText =
           data.minutesLeft === 1 ? '1 分钟' : `${data.minutesLeft} 分钟`;
 
-        toast.error(`邮箱将在 ${minutesText} 后过期`, {
-          duration: 10000,
-          icon: '⏰',
+        // 显示持久的警告通知
+        toast.error(`⏰ 邮箱将在 ${minutesText} 后过期`, {
+          duration: 15000,
+          icon: '⚠️',
+          style: {
+            background: '#FEF2F2',
+            border: '1px solid #FECACA',
+            color: '#DC2626',
+          },
         });
+
+        // 播放警告声音
+        playWarningSound();
 
         // 发送浏览器通知
         if (Notification.permission === 'granted') {
-          new Notification('邮箱即将过期', {
+          const notification = new Notification('⏰ 邮箱即将过期', {
             body: `您的临时邮箱将在 ${minutesText} 后过期，请及时延长有效期`,
             icon: '/favicon.ico',
             tag: 'expiry-warning',
+            requireInteraction: true, // 需要用户交互才关闭
           });
+
+          notification.onclick = () => {
+            window.focus();
+            notification.close();
+          };
         }
+
+        // 添加页面标题警告
+        addExpiryTitleWarning(data.minutesLeft);
       }
     },
     [state.currentMailbox]
