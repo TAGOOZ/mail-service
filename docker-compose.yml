@@ -46,7 +46,7 @@ services:
       JWT_SECRET: your-super-secret-jwt-key-change-in-production
       MAIL_DOMAIN: nnu.edu.kg
       MAIL_PORT: 2525
-      CORS_ORIGIN: http://localhost:3000
+      CORS_ORIGIN: https://mail.nnu.edu.kg
     ports:
       - '3001:3001'
       - '2525:2525'
@@ -68,8 +68,8 @@ services:
     ports:
       - '3000:80'
     environment:
-      REACT_APP_API_URL: http://localhost:3001
-      REACT_APP_WS_URL: http://localhost:3001
+      REACT_APP_API_URL: https://mail.nnu.edu.kg/api
+      REACT_APP_WS_URL: https://mail.nnu.edu.kg
     depends_on:
       - backend
     networks:
@@ -108,6 +108,7 @@ services:
       - '443:443'
     volumes:
       - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./config/nginx/redirect.conf:/etc/nginx/conf.d/redirect.conf:ro
       - ./config/nginx/ssl:/etc/nginx/ssl:ro
       - ./logs/nginx:/var/log/nginx
     depends_on:
