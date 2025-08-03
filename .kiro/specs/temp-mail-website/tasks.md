@@ -76,15 +76,15 @@
   - 测试实时推送功能的可靠性
   - _Requirements: 2.1, 2.5_
 
-- [ ] 6. 前端基础架构搭建
-- [ ] 6.1 创建 React 应用和路由配置
+- [-] 6. 前端基础架构搭建
+- [x] 6.1 创建 React 应用和路由配置
   - 使用 Create React App 或 Vite 创建前端项目
   - 配置 React Router 进行页面路由
   - 设置 Tailwind CSS 样式框架
   - 创建基础的 Layout 组件和页面结构
   - _Requirements: 4.1, 4.3_
 
-- [ ] 6.2 实现状态管理和 API 客户端
+- [-] 6.2 实现状态管理和 API 客户端
   - 配置 React Context 或 Redux 进行状态管理
   - 创建 Axios HTTP 客户端，包含认证拦截器
   - 实现 API 调用的错误处理和重试逻辑
