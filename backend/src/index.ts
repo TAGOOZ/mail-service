@@ -13,6 +13,7 @@ import { DatabaseService } from './services/database';
 import { CleanupScheduler } from './services/cleanupScheduler';
 import { mailReceivingService } from './services/mailReceivingService';
 import { webSocketService } from './services/websocketService';
+import { mailWebSocketIntegration } from './services/mailWebSocketIntegration';
 
 // Load environment variables
 dotenv.config();
@@ -182,6 +183,28 @@ app.get('/health/websocket', async (req, res) => {
   }
 });
 
+// Mail-WebSocket integration status endpoint
+app.get('/health/integration', async (req, res) => {
+  try {
+    const integrationStats = mailWebSocketIntegration.getDetailedStats();
+    const statusCode = integrationStats.isHealthy ? 200 : 503;
+
+    res.status(statusCode).json({
+      integration: integrationStats,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Integration status check failed:', error);
+    res.status(500).json({
+      error: {
+        type: 'INTERNAL_ERROR',
+        message: 'Failed to get integration status',
+        code: 'INTEGRATION_STATUS_ERROR',
+      },
+    });
+  }
+});
+
 // API routes
 import mailRoutes from './routes/mail';
 app.use('/api/mail', mailRoutes);
@@ -200,6 +223,59 @@ app.use('*', (req, res) => {
   });
 });
 
+/**
+ * Setup integration between mail receiving service and WebSocket service
+ * This function implements the core integration for real-time mail push notifications
+ */
+async function setupMailWebSocketIntegration(): Promise<void> {
+  try {
+    // Initialize the integration service
+    await mailWebSocketIntegration.initialize(
+      mailReceivingService,
+      webSocketService
+    );
+
+    // Set up integration event listeners for monitoring
+    mailWebSocketIntegration.on('broadcastSuccess', data => {
+      logger.debug('Integration broadcast success event', {
+        mailboxId: data.mailboxId,
+        mailId: data.mail.id,
+        processingTime: data.processingTime,
+      });
+    });
+
+    mailWebSocketIntegration.on('broadcastFailure', data => {
+      logger.warn('Integration broadcast failure event', {
+        error: data.error.message,
+        mailboxId: data.mailboxId,
+        mailId: data.mail?.id,
+        processingTime: data.processingTime,
+      });
+    });
+
+    mailWebSocketIntegration.on('healthReport', stats => {
+      // Health reports are already logged by the integration service
+      // This event can be used for external monitoring systems
+    });
+
+    logger.info(
+      'Mail receiving and WebSocket integration setup completed successfully',
+      {
+        integrationFeatures: [
+          'Real-time mail push notifications',
+          'Message formatting and validation',
+          'Error handling and recovery',
+          'Integration health monitoring',
+          'Performance tracking',
+        ],
+      }
+    );
+  } catch (error) {
+    logger.error('Failed to setup Mail-WebSocket integration:', error);
+    throw error;
+  }
+}
+
 // Initialize and start server
 async function startServer() {
   try {
@@ -216,13 +292,7 @@ async function startServer() {
     webSocketService.initialize(httpServer);
 
     // Connect mail receiving service with WebSocket service
-    mailReceivingService.on('mailReceived', async (event: any) => {
-      try {
-        await webSocketService.broadcastNewMail(event.mailboxId, event.mail);
-      } catch (error) {
-        logger.error('Failed to broadcast new mail via WebSocket:', error);
-      }
-    });
+    await setupMailWebSocketIntegration();
 
     // Start server only if not in test environment
     if (process.env.NODE_ENV !== 'test') {
@@ -240,6 +310,9 @@ async function startServer() {
           try {
             // Stop WebSocket service
             await webSocketService.shutdown();
+
+            // Stop mail-WebSocket integration
+            await mailWebSocketIntegration.shutdown();
 
             // Stop cleanup scheduler
             CleanupScheduler.stop();
