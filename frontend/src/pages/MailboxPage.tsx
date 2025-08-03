@@ -1,20 +1,24 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Mail } from 'lucide-react';
 import { useMailbox } from '../hooks/useMailbox';
 import { useMails } from '../hooks/useMails';
 import MailboxInfo from '../components/MailboxInfo';
 import MailList from '../components/MailList';
+import ActionButtons from '../components/ActionButtons';
 
 const MailboxPage: React.FC = () => {
   const { mailboxId } = useParams<{ mailboxId: string }>();
   const navigate = useNavigate();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
   const { 
     mailbox, 
     loading: mailboxLoading, 
     error: mailboxError, 
     loadMailbox, 
-    extendMailbox
+    extendMailbox,
+    generateMailbox
   } = useMailbox();
   const { 
     mails, 
@@ -26,7 +30,8 @@ const MailboxPage: React.FC = () => {
     loadMoreMails,
     deleteMail,
     deleteMultipleMails,
-    markAsRead
+    markAsRead,
+    clearAllMails
   } = useMails();
 
   // Load mailbox and mails on mount
@@ -45,9 +50,16 @@ const MailboxPage: React.FC = () => {
     }
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     if (mailboxId) {
-      loadMails(mailboxId);
+      setIsRefreshing(true);
+      try {
+        await loadMails(mailboxId);
+      } catch (error) {
+        console.error('Failed to refresh mails:', error);
+      } finally {
+        setIsRefreshing(false);
+      }
     }
   };
 
@@ -103,6 +115,21 @@ const MailboxPage: React.FC = () => {
     }
   };
 
+  const handleGenerateNew = async () => {
+    try {
+      await generateMailbox();
+      // Navigation is handled in the generateMailbox function
+    } catch (error) {
+      console.error('Failed to generate new mailbox:', error);
+    }
+  };
+
+  const handleClearAllMails = async () => {
+    if (mailboxId) {
+      await clearAllMails(mailboxId);
+    }
+  };
+
   // Show loading state
   if (mailboxLoading && !mailbox) {
     return (
@@ -135,6 +162,8 @@ const MailboxPage: React.FC = () => {
     );
   }
 
+  const canExtend = mailbox ? mailbox.extensionCount < 2 : false;
+
   return (
     <div className="space-y-6">
       {/* Mailbox Info Component */}
@@ -147,6 +176,19 @@ const MailboxPage: React.FC = () => {
         onCopyAddress={handleCopyAddress}
         onExtendExpiry={handleExtendExpiry}
         isExtending={mailboxLoading}
+      />
+
+      {/* Action Buttons Component */}
+      <ActionButtons
+        mailboxId={mailboxId!}
+        canExtend={canExtend}
+        isExtending={mailboxLoading}
+        isRefreshing={isRefreshing}
+        mailCount={totalMails}
+        onGenerateNew={handleGenerateNew}
+        onExtendExpiry={handleExtendExpiry}
+        onRefreshMails={handleRefresh}
+        onClearAllMails={handleClearAllMails}
       />
 
       {/* Mail List Component */}
