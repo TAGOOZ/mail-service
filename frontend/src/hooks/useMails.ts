@@ -169,6 +169,30 @@ export const useMails = () => {
     [dispatch, state.mails]
   );
 
+  // Mark mail as unread
+  const markAsUnread = useCallback(
+    async (mailboxId: string, mailId: string) => {
+      try {
+        await mailApi.markAsUnread(mailboxId, mailId);
+
+        // Update the mail in the list
+        const mail = state.mails.find(m => m.id === mailId);
+        if (mail && mail.isRead) {
+          const updatedMail: Mail = { ...mail, isRead: false };
+          dispatch({ type: 'UPDATE_MAIL', payload: updatedMail });
+        }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : 'Failed to mark mail as unread';
+        dispatch({ type: 'SET_ERROR', payload: errorMessage });
+        throw error;
+      }
+    },
+    [dispatch, state.mails]
+  );
+
   // Add new mail (for real-time updates)
   const addNewMail = useCallback(
     (mail: Mail) => {
@@ -198,6 +222,7 @@ export const useMails = () => {
     deleteMultipleMails,
     clearAllMails,
     markAsRead,
+    markAsUnread,
     addNewMail,
     updateMail,
   };

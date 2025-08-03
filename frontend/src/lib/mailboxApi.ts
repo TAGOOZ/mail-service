@@ -109,4 +109,11 @@ export const mailApi = {
       apiClient.patch<any>(`/mailbox/${mailboxId}/mails/${mailId}/read`)
     );
   },
+
+  // Mark mail as unread
+  markAsUnread: async (mailboxId: string, mailId: string): Promise<void> => {
+    return apiRequest(() =>
+      apiClient.patch<any>(`/mailbox/${mailboxId}/mails/${mailId}/unread`)
+    );
+  },
 };

@@ -52,6 +52,8 @@ describe('MailList', () => {
     onDeleteMail: vi.fn(),
     onDeleteSelected: vi.fn(),
     onMarkAsRead: vi.fn(),
+    onMarkAsUnread: vi.fn(),
+    onClearAllMails: vi.fn(),
   };
 
   beforeEach(() => {
@@ -61,7 +63,7 @@ describe('MailList', () => {
   it('renders mail list correctly', () => {
     render(<MailList {...defaultProps} />);
     
-    expect(screen.getByText('收件箱')).toBeInTheDocument();
+    expect(screen.getByText('收件箱 (2)')).toBeInTheDocument();
     expect(screen.getByText('Test Email 1')).toBeInTheDocument();
     expect(screen.getByText('Test Email 2 with Attachment')).toBeInTheDocument();
     expect(screen.getByText('sender1@example.com')).toBeInTheDocument();
@@ -296,5 +298,178 @@ describe('MailList', () => {
     
     const content = screen.getByText(/A{150}\.\.\.$/);
     expect(content).toBeInTheDocument();
+  });
+
+  describe('Search and Filter Functionality', () => {
+    it('shows search input when mails exist', () => {
+      render(<MailList {...defaultProps} />);
+      
+      expect(screen.getByPlaceholderText('搜索邮件 (发件人、主题、内容)')).toBeInTheDocument();
+    });
+
+    it('filters mails by search query', () => {
+      render(<MailList {...defaultProps} />);
+      
+      const searchInput = screen.getByPlaceholderText('搜索邮件 (发件人、主题、内容)');
+      fireEvent.change(searchInput, { target: { value: 'sender1' } });
+      
+      expect(screen.getByText('Test Email 1')).toBeInTheDocument();
+      expect(screen.queryByText('Test Email 2 with Attachment')).not.toBeInTheDocument();
+    });
+
+    it('shows clear search button when search query exists', () => {
+      render(<MailList {...defaultProps} />);
+      
+      const searchInput = screen.getByPlaceholderText('搜索邮件 (发件人、主题、内容)');
+      fireEvent.change(searchInput, { target: { value: 'test' } });
+      
+      // Find the clear button by looking for the X icon within the search input container
+      const clearButton = searchInput.parentElement?.querySelector('button');
+      expect(clearButton).toBeInTheDocument();
+    });
+
+    it('clears search when clear button is clicked', () => {
+      render(<MailList {...defaultProps} />);
+      
+      const searchInput = screen.getByPlaceholderText('搜索邮件 (发件人、主题、内容)');
+      fireEvent.change(searchInput, { target: { value: 'test' } });
+      
+      // Find the clear button by looking for the X icon within the search input container
+      const clearButton = searchInput.parentElement?.querySelector('button');
+      fireEvent.click(clearButton!);
+      
+      expect(searchInput).toHaveValue('');
+    });
+
+    it('shows filter buttons when filter toggle is clicked', () => {
+      render(<MailList {...defaultProps} />);
+      
+      const filterButton = screen.getByTitle('筛选邮件');
+      fireEvent.click(filterButton);
+      
+      expect(screen.getByText('全部 (2)')).toBeInTheDocument();
+      expect(screen.getByText('未读 (1)')).toBeInTheDocument();
+      expect(screen.getByText('已读 (1)')).toBeInTheDocument();
+      expect(screen.getByText('有附件 (1)')).toBeInTheDocument();
+    });
+
+    it('filters mails by unread status', () => {
+      render(<MailList {...defaultProps} />);
+      
+      const filterButton = screen.getByTitle('筛选邮件');
+      fireEvent.click(filterButton);
+      
+      const unreadFilter = screen.getByText('未读 (1)');
+      fireEvent.click(unreadFilter);
+      
+      expect(screen.getByText('Test Email 1')).toBeInTheDocument();
+      expect(screen.queryByText('Test Email 2 with Attachment')).not.toBeInTheDocument();
+    });
+
+    it('shows no results message when search returns no matches', () => {
+      render(<MailList {...defaultProps} />);
+      
+      const searchInput = screen.getByPlaceholderText('搜索邮件 (发件人、主题、内容)');
+      fireEvent.change(searchInput, { target: { value: 'nonexistent' } });
+      
+      expect(screen.getByText('未找到匹配的邮件')).toBeInTheDocument();
+      expect(screen.getByText('尝试使用不同的搜索关键词')).toBeInTheDocument();
+    });
+  });
+
+  describe('Clear All Mails Functionality', () => {
+    it('shows clear all button when mails exist', () => {
+      render(<MailList {...defaultProps} />);
+      
+      expect(screen.getByText('清空邮箱')).toBeInTheDocument();
+    });
+
+    it('shows confirmation dialog when clear all is clicked', () => {
+      render(<MailList {...defaultProps} />);
+      
+      const clearButton = screen.getByText('清空邮箱');
+      fireEvent.click(clearButton);
+      
+      expect(screen.getByRole('heading', { name: '清空邮箱' })).toBeInTheDocument();
+      expect(screen.getByText('您确定要删除所有 2 封邮件吗？此操作无法撤销。')).toBeInTheDocument();
+    });
+
+    it('calls onClearAllMails when confirmed', () => {
+      render(<MailList {...defaultProps} />);
+      
+      const clearButton = screen.getByText('清空邮箱');
+      fireEvent.click(clearButton);
+      
+      const confirmButton = screen.getByText('确认清空');
+      fireEvent.click(confirmButton);
+      
+      expect(defaultProps.onClearAllMails).toHaveBeenCalledTimes(1);
+    });
+
+    it('closes dialog when cancelled', () => {
+      render(<MailList {...defaultProps} />);
+      
+      const clearButton = screen.getByText('清空邮箱');
+      fireEvent.click(clearButton);
+      
+      const cancelButton = screen.getByText('取消');
+      fireEvent.click(cancelButton);
+      
+      expect(screen.queryByText('确认清空')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Mark as Read/Unread Functionality', () => {
+    it('shows mark as read button for unread mails', () => {
+      render(<MailList {...defaultProps} />);
+      
+      const markAsReadButtons = screen.getAllByTitle('标记为已读');
+      expect(markAsReadButtons).toHaveLength(1); // Only one unread mail
+    });
+
+    it('shows mark as unread button for read mails', () => {
+      render(<MailList {...defaultProps} />);
+      
+      const markAsUnreadButtons = screen.getAllByTitle('标记为未读');
+      expect(markAsUnreadButtons).toHaveLength(1); // Only one read mail
+    });
+
+    it('calls onMarkAsRead when mark as read button is clicked', () => {
+      render(<MailList {...defaultProps} />);
+      
+      const markAsReadButton = screen.getByTitle('标记为已读');
+      fireEvent.click(markAsReadButton);
+      
+      expect(defaultProps.onMarkAsRead).toHaveBeenCalledWith('1');
+    });
+
+    it('calls onMarkAsUnread when mark as unread button is clicked', () => {
+      render(<MailList {...defaultProps} />);
+      
+      const markAsUnreadButton = screen.getByTitle('标记为未读');
+      fireEvent.click(markAsUnreadButton);
+      
+      expect(defaultProps.onMarkAsUnread).toHaveBeenCalledWith('2');
+    });
+  });
+
+  describe('Mail Count Display', () => {
+    it('shows correct mail count in header', () => {
+      render(<MailList {...defaultProps} />);
+      
+      expect(screen.getByText('收件箱 (2)')).toBeInTheDocument();
+    });
+
+    it('updates mail count when filtered', () => {
+      render(<MailList {...defaultProps} />);
+      
+      const filterButton = screen.getByTitle('筛选邮件');
+      fireEvent.click(filterButton);
+      
+      const unreadFilter = screen.getByText('未读 (1)');
+      fireEvent.click(unreadFilter);
+      
+      expect(screen.getByText('收件箱 (1)')).toBeInTheDocument();
+    });
   });
 });

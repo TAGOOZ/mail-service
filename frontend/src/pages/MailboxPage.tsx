@@ -31,6 +31,7 @@ const MailboxPage: React.FC = () => {
     deleteMail,
     deleteMultipleMails,
     markAsRead,
+    markAsUnread,
     clearAllMails
   } = useMails();
 
@@ -102,6 +103,20 @@ const MailboxPage: React.FC = () => {
         console.error('Failed to mark mail as read:', error);
       }
     }
+  };
+
+  const handleMarkAsUnread = async (mailId: string) => {
+    if (mailboxId) {
+      try {
+        await markAsUnread(mailboxId, mailId);
+      } catch (error) {
+        console.error('Failed to mark mail as unread:', error);
+      }
+    }
+  };
+
+  const handleClearAllMailsFromList = async () => {
+    await handleClearAllMails();
   };
 
   const handleExtendExpiry = async () => {
@@ -203,6 +218,8 @@ const MailboxPage: React.FC = () => {
         onDeleteMail={handleDeleteMail}
         onDeleteSelected={handleDeleteSelected}
         onMarkAsRead={handleMarkAsRead}
+        onMarkAsUnread={handleMarkAsUnread}
+        onClearAllMails={handleClearAllMailsFromList}
       />
     </div>
   );
