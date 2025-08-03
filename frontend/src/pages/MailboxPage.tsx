@@ -1,12 +1,14 @@
 import React, { useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { Mail, RefreshCw } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Mail } from 'lucide-react';
 import { useMailbox } from '../hooks/useMailbox';
 import { useMails } from '../hooks/useMails';
 import MailboxInfo from '../components/MailboxInfo';
+import MailList from '../components/MailList';
 
 const MailboxPage: React.FC = () => {
   const { mailboxId } = useParams<{ mailboxId: string }>();
+  const navigate = useNavigate();
   const { 
     mailbox, 
     loading: mailboxLoading, 
@@ -19,7 +21,12 @@ const MailboxPage: React.FC = () => {
     totalMails, 
     loading: mailsLoading, 
     error: mailsError, 
-    loadMails 
+    loadMails,
+    hasMoreMails,
+    loadMoreMails,
+    deleteMail,
+    deleteMultipleMails,
+    markAsRead
   } = useMails();
 
   // Load mailbox and mails on mount
@@ -41,6 +48,47 @@ const MailboxPage: React.FC = () => {
   const handleRefresh = () => {
     if (mailboxId) {
       loadMails(mailboxId);
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (mailboxId) {
+      loadMoreMails(mailboxId);
+    }
+  };
+
+  const handleMailClick = (mailId: string) => {
+    // Navigate to mail detail page or open modal
+    navigate(`/mailbox/${mailboxId}/mail/${mailId}`);
+  };
+
+  const handleDeleteMail = async (mailId: string) => {
+    if (mailboxId) {
+      try {
+        await deleteMail(mailboxId, mailId);
+      } catch (error) {
+        console.error('Failed to delete mail:', error);
+      }
+    }
+  };
+
+  const handleDeleteSelected = async (mailIds: string[]) => {
+    if (mailboxId) {
+      try {
+        await deleteMultipleMails(mailboxId, mailIds);
+      } catch (error) {
+        console.error('Failed to delete mails:', error);
+      }
+    }
+  };
+
+  const handleMarkAsRead = async (mailId: string) => {
+    if (mailboxId) {
+      try {
+        await markAsRead(mailboxId, mailId);
+      } catch (error) {
+        console.error('Failed to mark mail as read:', error);
+      }
     }
   };
 
@@ -101,64 +149,19 @@ const MailboxPage: React.FC = () => {
         isExtending={mailboxLoading}
       />
 
-      {/* Refresh Button */}
-      <div className="flex justify-end">
-        <button
-          onClick={handleRefresh}
-          disabled={mailsLoading}
-          className="inline-flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 disabled:opacity-50 transition-colors"
-        >
-          <RefreshCw className={`h-4 w-4 ${mailsLoading ? 'animate-spin' : ''}`} />
-          <span>刷新邮件</span>
-        </button>
-      </div>
-
-      {/* Mail List */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-xl font-semibold mb-4">收件箱</h2>
-        
-        {mailsError && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
-            {mailsError}
-          </div>
-        )}
-        
-        {mails.length === 0 ? (
-          <div className="text-center py-12">
-            <Mail className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-500 mb-2">暂无邮件</h3>
-            <p className="text-gray-400">
-              发送到 {mailbox.address} 的邮件将会显示在这里
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {mails.map((mail) => (
-              <div key={mail.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <span className="font-medium text-gray-900">{mail.from}</span>
-                      {!mail.isRead && (
-                        <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                          新邮件
-                        </span>
-                      )}
-                    </div>
-                    <h4 className="font-medium text-gray-900 mb-1">{mail.subject}</h4>
-                    <p className="text-gray-600 text-sm line-clamp-2">
-                      {mail.textContent.substring(0, 150)}...
-                    </p>
-                  </div>
-                  <div className="text-right text-sm text-gray-500">
-                    {new Date(mail.receivedAt).toLocaleString('zh-CN')}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* Mail List Component */}
+      <MailList
+        mails={mails}
+        loading={mailsLoading}
+        error={mailsError}
+        hasMore={hasMoreMails}
+        onLoadMore={handleLoadMore}
+        onRefresh={handleRefresh}
+        onMailClick={handleMailClick}
+        onDeleteMail={handleDeleteMail}
+        onDeleteSelected={handleDeleteSelected}
+        onMarkAsRead={handleMarkAsRead}
+      />
     </div>
   );
 };

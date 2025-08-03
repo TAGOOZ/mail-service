@@ -106,6 +106,29 @@ export const useMails = () => {
     [dispatch]
   );
 
+  // Delete multiple mails
+  const deleteMultipleMails = useCallback(
+    async (mailboxId: string, mailIds: string[]) => {
+      try {
+        // Delete mails one by one (API doesn't support batch delete)
+        await Promise.all(
+          mailIds.map(mailId => mailApi.deleteMail(mailboxId, mailId))
+        );
+
+        // Remove all mails from state
+        mailIds.forEach(mailId => {
+          dispatch({ type: 'REMOVE_MAIL', payload: mailId });
+        });
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Failed to delete mails';
+        dispatch({ type: 'SET_ERROR', payload: errorMessage });
+        throw error;
+      }
+    },
+    [dispatch]
+  );
+
   // Clear all mails
   const clearAllMails = useCallback(
     async (mailboxId: string) => {
@@ -172,6 +195,7 @@ export const useMails = () => {
     loadMoreMails,
     getMail,
     deleteMail,
+    deleteMultipleMails,
     clearAllMails,
     markAsRead,
     addNewMail,
