@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Mail } from 'lucide-react';
 import { useMailbox } from '../hooks/useMailbox';
 import { useMails } from '../hooks/useMails';
+import { useWebSocket } from '../hooks/useWebSocket';
 import MailboxInfo from '../components/MailboxInfo';
 import MailList from '../components/MailList';
 import ActionButtons from '../components/ActionButtons';
@@ -20,6 +21,8 @@ const MailboxPage: React.FC = () => {
     extendMailbox,
     generateMailbox
   } = useMailbox();
+  
+  const { requestNotificationPermission } = useWebSocket();
   const { 
     mails, 
     totalMails, 
@@ -43,6 +46,13 @@ const MailboxPage: React.FC = () => {
       }).catch(console.error);
     }
   }, [mailboxId, loadMailbox, loadMails]);
+
+  // Request notification permission when mailbox is loaded
+  useEffect(() => {
+    if (mailbox) {
+      requestNotificationPermission();
+    }
+  }, [mailbox, requestNotificationPermission]);
 
   const handleCopyAddress = () => {
     if (mailbox?.address) {
