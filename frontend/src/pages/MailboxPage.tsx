@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Mail, Clock, Copy, RefreshCw } from 'lucide-react';
+import { Mail, RefreshCw } from 'lucide-react';
 import { useMailbox } from '../hooks/useMailbox';
 import { useMails } from '../hooks/useMails';
+import MailboxInfo from '../components/MailboxInfo';
 
 const MailboxPage: React.FC = () => {
   const { mailboxId } = useParams<{ mailboxId: string }>();
@@ -11,8 +12,7 @@ const MailboxPage: React.FC = () => {
     loading: mailboxLoading, 
     error: mailboxError, 
     loadMailbox, 
-    extendMailbox, 
-    getTimeRemaining 
+    extendMailbox
   } = useMailbox();
   const { 
     mails, 
@@ -55,12 +55,6 @@ const MailboxPage: React.FC = () => {
     }
   };
 
-  const formatTimeRemaining = () => {
-    const timeRemaining = getTimeRemaining();
-    if (!timeRemaining) return '已过期';
-    return `${timeRemaining.hours}小时${timeRemaining.minutes}分钟`;
-  };
-
   // Show loading state
   if (mailboxLoading && !mailbox) {
     return (
@@ -95,68 +89,32 @@ const MailboxPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Mailbox Info Card */}
-      <div className="card p-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between space-y-4 md:space-y-0">
-          <div className="space-y-2">
-            <h1 className="text-2xl font-bold text-gray-900">您的临时邮箱</h1>
-            <div className="flex items-center space-x-2">
-              <Mail className="h-5 w-5 text-gray-500" />
-              <span className="text-lg font-mono bg-gray-100 px-3 py-1 rounded">
-                {mailbox.address}
-              </span>
-              <button
-                onClick={handleCopyAddress}
-                className="p-1 text-gray-500 hover:text-gray-700 transition-colors"
-                title="复制邮箱地址"
-              >
-                <Copy className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={handleRefresh}
-              disabled={mailsLoading}
-              className="btn-secondary inline-flex items-center space-x-2 disabled:opacity-50"
-            >
-              <RefreshCw className={`h-4 w-4 ${mailsLoading ? 'animate-spin' : ''}`} />
-              <span>刷新</span>
-            </button>
-            <button
-              onClick={handleExtendExpiry}
-              disabled={mailboxLoading}
-              className="btn-primary inline-flex items-center space-x-2 disabled:opacity-50"
-            >
-              <Clock className="h-4 w-4" />
-              <span>延长有效期</span>
-            </button>
-          </div>
-        </div>
-        
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-            <div>
-              <span className="text-gray-500">剩余时间:</span>
-              <span className="ml-2 font-medium text-orange-600">
-                {formatTimeRemaining()}
-              </span>
-            </div>
-            <div>
-              <span className="text-gray-500">邮件数量:</span>
-              <span className="ml-2 font-medium">{totalMails}</span>
-            </div>
-            <div>
-              <span className="text-gray-500">状态:</span>
-              <span className="ml-2 font-medium text-green-600">活跃</span>
-            </div>
-          </div>
-        </div>
+      {/* Mailbox Info Component */}
+      <MailboxInfo
+        address={mailbox.address}
+        expiresAt={mailbox.expiresAt}
+        mailCount={totalMails}
+        extensionCount={mailbox.extensionCount}
+        maxExtensions={2} // Based on requirements
+        onCopyAddress={handleCopyAddress}
+        onExtendExpiry={handleExtendExpiry}
+        isExtending={mailboxLoading}
+      />
+
+      {/* Refresh Button */}
+      <div className="flex justify-end">
+        <button
+          onClick={handleRefresh}
+          disabled={mailsLoading}
+          className="inline-flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 disabled:opacity-50 transition-colors"
+        >
+          <RefreshCw className={`h-4 w-4 ${mailsLoading ? 'animate-spin' : ''}`} />
+          <span>刷新邮件</span>
+        </button>
       </div>
 
       {/* Mail List */}
-      <div className="card p-6">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h2 className="text-xl font-semibold mb-4">收件箱</h2>
         
         {mailsError && (
@@ -176,7 +134,7 @@ const MailboxPage: React.FC = () => {
         ) : (
           <div className="space-y-4">
             {mails.map((mail) => (
-              <div key={mail.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+              <div key={mail.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-2">
