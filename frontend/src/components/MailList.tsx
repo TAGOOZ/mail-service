@@ -244,34 +244,34 @@ const MailList: React.FC<MailListProps> = ({
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center justify-between mb-4">
+      <div className="p-3 sm:p-4 border-b border-gray-200">
+        <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center space-x-3">
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
               收件箱 ({filteredMails.length})
             </h2>
             {/* Connection Status Indicator */}
             <ConnectionStatus isConnected={isConnected} />
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center justify-between sm:justify-end space-x-2">
             {mails.length > 0 && (
               <>
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors touch-manipulation active:scale-95 min-h-[40px] min-w-[40px]"
                   title="筛选邮件"
                 >
                   <Filter className="h-4 w-4" />
                 </button>
                 <button
                   onClick={toggleSelectionMode}
-                  className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+                  className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors touch-manipulation active:scale-95 min-h-[32px]"
                 >
                   {isSelectionMode ? '取消选择' : '批量操作'}
                 </button>
                 <button
                   onClick={handleClearAllMails}
-                  className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
+                  className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors touch-manipulation active:scale-95 min-h-[32px]"
                   title="清空所有邮件"
                 >
                   清空邮箱
@@ -281,7 +281,7 @@ const MailList: React.FC<MailListProps> = ({
             <button
               onClick={onRefresh}
               disabled={loading}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50"
+              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50 touch-manipulation active:scale-95 min-h-[40px] min-w-[40px]"
               title="刷新邮件"
             >
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
@@ -291,7 +291,7 @@ const MailList: React.FC<MailListProps> = ({
 
         {/* Search Bar */}
         {mails.length > 0 && (
-          <div className="relative mb-4">
+          <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search className="h-4 w-4 text-gray-400" />
             </div>
@@ -300,12 +300,12 @@ const MailList: React.FC<MailListProps> = ({
               placeholder="搜索邮件 (发件人、主题、内容)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              className="block w-full pl-10 pr-10 py-3 sm:py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-base sm:text-sm"
             />
             {searchQuery && (
               <button
                 onClick={handleClearSearch}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center touch-manipulation active:scale-95"
               >
                 <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
               </button>
@@ -315,8 +315,8 @@ const MailList: React.FC<MailListProps> = ({
 
         {/* Filters */}
         {showFilters && mails.length > 0 && (
-          <div className="mb-4 p-3 bg-gray-50 rounded-md">
-            <div className="flex flex-wrap gap-2">
+          <div className="mt-3 p-3 bg-gray-50 rounded-md">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
               {[
                 { key: 'all' as FilterType, label: '全部', count: getFilterCount('all') },
                 { key: 'unread' as FilterType, label: '未读', count: getFilterCount('unread') },
@@ -326,7 +326,7 @@ const MailList: React.FC<MailListProps> = ({
                 <button
                   key={key}
                   onClick={() => setFilterType(key)}
-                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  className={`px-3 py-2 text-sm rounded-md transition-colors touch-manipulation active:scale-95 min-h-[36px] ${
                     filterType === key
                       ? 'bg-blue-600 text-white'
                       : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
@@ -528,7 +528,7 @@ const MailItem: React.FC<MailItemProps> = ({
 
   return (
     <div
-      className={`p-4 hover:bg-gray-50 cursor-pointer transition-all duration-300 ${
+      className={`p-3 sm:p-4 hover:bg-gray-50 active:bg-gray-100 cursor-pointer transition-all duration-300 touch-manipulation ${
         isSelected ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
       } ${!mail.isRead ? 'bg-blue-50/30' : ''} ${
         isNewMail ? 'bg-green-50 border-l-4 border-l-green-500 animate-pulse' : ''
@@ -549,8 +549,8 @@ const MailItem: React.FC<MailItemProps> = ({
 
         {/* Mail Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center space-x-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 space-y-1 sm:space-y-0">
+            <div className="flex items-center space-x-2 min-w-0 flex-1">
               <span className={`font-medium truncate ${
                 mail.isRead ? 'text-gray-900' : 'text-gray-900 font-semibold'
               }`}>
@@ -570,8 +570,8 @@ const MailItem: React.FC<MailItemProps> = ({
                 <Paperclip className="h-4 w-4 text-gray-400 flex-shrink-0" />
               )}
             </div>
-            <div className="flex items-center space-x-2 text-sm text-gray-500">
-              <Clock className="h-4 w-4" />
+            <div className="flex items-center space-x-2 text-xs sm:text-sm text-gray-500 flex-shrink-0">
+              <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
               <span>{formatDate(mail.receivedAt)}</span>
             </div>
           </div>
@@ -588,7 +588,7 @@ const MailItem: React.FC<MailItemProps> = ({
           </p>
 
           <div className="flex items-center justify-between text-xs text-gray-500">
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3 sm:space-x-4">
               {mail.attachments.length > 0 && (
                 <span>{mail.attachments.length} 个附件</span>
               )}
@@ -598,7 +598,7 @@ const MailItem: React.FC<MailItemProps> = ({
               <div className="flex items-center space-x-1">
                 <button
                   onClick={handleMarkAsReadClick}
-                  className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                  className="p-2 sm:p-1 text-gray-400 hover:text-blue-600 transition-colors touch-manipulation active:scale-95 min-h-[32px] min-w-[32px] sm:min-h-0 sm:min-w-0"
                   title={mail.isRead ? '标记为未读' : '标记为已读'}
                 >
                   {mail.isRead ? (
@@ -609,7 +609,7 @@ const MailItem: React.FC<MailItemProps> = ({
                 </button>
                 <button
                   onClick={handleDeleteClick}
-                  className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                  className="p-2 sm:p-1 text-gray-400 hover:text-red-600 transition-colors touch-manipulation active:scale-95 min-h-[32px] min-w-[32px] sm:min-h-0 sm:min-w-0"
                   title="删除邮件"
                 >
                   <Trash2 className="h-4 w-4" />

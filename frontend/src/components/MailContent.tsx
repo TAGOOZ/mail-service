@@ -121,30 +121,30 @@ const MailContent: React.FC<MailContentProps> = ({
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
       {/* Header */}
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center justify-between mb-4">
+      <div className="p-4 sm:p-6 border-b border-gray-200">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0 mb-4">
           <button
             onClick={onBack}
-            className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors"
+            className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors touch-manipulation active:scale-95 self-start"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span>返回邮件列表</span>
+            <span className="text-sm sm:text-base">返回邮件列表</span>
           </button>
           
           {mail.htmlContent && (
             <button
               onClick={() => setShowHtml(!showHtml)}
-              className="inline-flex items-center space-x-2 px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+              className="inline-flex items-center space-x-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors touch-manipulation active:scale-95 self-start sm:self-auto"
             >
               {showHtml ? (
                 <>
                   <EyeOff className="h-4 w-4" />
-                  <span>纯文本</span>
+                  <span className="text-sm sm:text-base">纯文本</span>
                 </>
               ) : (
                 <>
                   <Eye className="h-4 w-4" />
-                  <span>HTML视图</span>
+                  <span className="text-sm sm:text-base">HTML视图</span>
                 </>
               )}
             </button>
@@ -153,31 +153,31 @@ const MailContent: React.FC<MailContentProps> = ({
 
         {/* Mail Header Info */}
         <div className="space-y-3">
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 break-words">
             {mail.subject || '(无主题)'}
           </h1>
           
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
-            <div className="flex items-center space-x-3">
-              <div className="flex items-center space-x-2">
-                <User className="h-4 w-4 text-gray-500" />
-                <span className="font-medium text-gray-900">{mail.from}</span>
+          <div className="flex flex-col space-y-3 sm:space-y-2">
+            <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+              <div className="flex items-center space-x-2 min-w-0">
+                <User className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                <span className="font-medium text-gray-900 truncate">{mail.from}</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <Mail className="h-4 w-4 text-gray-500" />
-                <span className="text-gray-600">{mail.to}</span>
+              <div className="flex items-center space-x-2 min-w-0">
+                <Mail className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                <span className="text-gray-600 truncate text-sm sm:text-base">{mail.to}</span>
               </div>
             </div>
             
             <div className="flex items-center space-x-2 text-sm text-gray-500">
-              <Clock className="h-4 w-4" />
+              <Clock className="h-4 w-4 flex-shrink-0" />
               <span>{formatDate(mail.receivedAt)}</span>
             </div>
           </div>
 
           {/* Mail Status and Size */}
-          <div className="flex items-center justify-between text-sm text-gray-500">
-            <div className="flex items-center space-x-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 text-sm text-gray-500">
+            <div className="flex items-center space-x-3 sm:space-x-4">
               {!mail.isRead && (
                 <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
                   新邮件
@@ -191,10 +191,10 @@ const MailContent: React.FC<MailContentProps> = ({
 
       {/* Attachments */}
       {mail.attachments.length > 0 && (
-        <div className="p-6 border-b border-gray-200 bg-gray-50">
+        <div className="p-4 sm:p-6 border-b border-gray-200 bg-gray-50">
           <div className="flex items-center space-x-2 mb-3">
             <Paperclip className="h-4 w-4 text-gray-500" />
-            <span className="font-medium text-gray-900">
+            <span className="font-medium text-gray-900 text-sm sm:text-base">
               附件 ({mail.attachments.length})
             </span>
           </div>
@@ -212,7 +212,7 @@ const MailContent: React.FC<MailContentProps> = ({
       )}
 
       {/* Mail Content */}
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <div className="prose max-w-none">
           {showHtml && mail.htmlContent ? (
             <div
@@ -222,10 +222,11 @@ const MailContent: React.FC<MailContentProps> = ({
                 lineHeight: '1.6',
                 fontSize: '14px',
                 color: '#374151',
+                wordBreak: 'break-word',
               }}
             />
           ) : (
-            <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
+            <div className="whitespace-pre-wrap text-gray-800 leading-relaxed text-sm sm:text-base break-words">
               {mail.textContent}
             </div>
           )}
@@ -263,7 +264,7 @@ const AttachmentItem: React.FC<AttachmentItemProps> = ({
   };
 
   return (
-    <div className="flex items-center space-x-3 p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+    <div className="flex items-center space-x-3 p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 active:bg-gray-100 transition-colors">
       <div className="flex-shrink-0">
         {getAttachmentIcon(attachment.contentType)}
       </div>
@@ -279,7 +280,7 @@ const AttachmentItem: React.FC<AttachmentItemProps> = ({
       
       <button
         onClick={onDownload}
-        className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+        className="flex-shrink-0 p-2 text-gray-400 hover:text-gray-600 transition-colors touch-manipulation active:scale-95 min-h-[36px] min-w-[36px]"
         title="下载附件"
       >
         <Download className="h-4 w-4" />

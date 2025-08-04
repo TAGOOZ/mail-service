@@ -136,25 +136,25 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
 
   return (
     <>
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="flex flex-col sm:flex-row gap-3">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
+        <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2 sm:gap-3">
           {/* Generate New Mailbox */}
           <button
             onClick={handleGenerateNew}
-            className="flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
+            className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-3 sm:py-2 bg-green-600 text-white rounded-md hover:bg-green-700 active:bg-green-800 transition-colors font-medium touch-manipulation active:scale-95 min-h-[44px] sm:min-h-0"
             title="生成新的临时邮箱"
           >
-            <Plus className="h-4 w-4" />
-            <span>生成新邮箱</span>
+            <Plus className="h-4 w-4 flex-shrink-0" />
+            <span className="text-sm sm:text-base">生成新邮箱</span>
           </button>
 
           {/* Extend Expiry */}
           <button
             onClick={onExtendExpiry}
             disabled={!canExtend || isExtending}
-            className={`flex items-center justify-center space-x-2 px-4 py-2 rounded-md font-medium transition-colors ${
+            className={`flex items-center justify-center space-x-2 px-3 sm:px-4 py-3 sm:py-2 rounded-md font-medium transition-colors touch-manipulation active:scale-95 min-h-[44px] sm:min-h-0 ${
               canExtend && !isExtending
-                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                ? 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
             title={
@@ -163,34 +163,34 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
                 : '延长邮箱有效期12小时'
             }
           >
-            <Clock className="h-4 w-4" />
-            <span>{isExtending ? '延期中...' : '延长有效期'}</span>
+            <Clock className="h-4 w-4 flex-shrink-0" />
+            <span className="text-sm sm:text-base">{isExtending ? '延期中...' : '延长有效期'}</span>
           </button>
 
           {/* Refresh Mails */}
           <button
             onClick={onRefreshMails}
             disabled={isRefreshing}
-            className="flex items-center justify-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 disabled:bg-gray-400 transition-colors font-medium"
+            className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-3 sm:py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 active:bg-gray-800 disabled:bg-gray-400 transition-colors font-medium touch-manipulation active:scale-95 min-h-[44px] sm:min-h-0"
             title="手动刷新邮件列表"
           >
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span>{isRefreshing ? '刷新中...' : '刷新邮件'}</span>
+            <RefreshCw className={`h-4 w-4 flex-shrink-0 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span className="text-sm sm:text-base">{isRefreshing ? '刷新中...' : '刷新邮件'}</span>
           </button>
 
           {/* Clear All Mails */}
           <button
             onClick={handleClearAll}
             disabled={mailCount === 0 || isClearing}
-            className={`flex items-center justify-center space-x-2 px-4 py-2 rounded-md font-medium transition-colors ${
+            className={`flex items-center justify-center space-x-2 px-3 sm:px-4 py-3 sm:py-2 rounded-md font-medium transition-colors touch-manipulation active:scale-95 min-h-[44px] sm:min-h-0 ${
               mailCount > 0 && !isClearing
-                ? 'bg-red-600 text-white hover:bg-red-700'
+                ? 'bg-red-600 text-white hover:bg-red-700 active:bg-red-800'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
             title={mailCount === 0 ? '没有邮件可清空' : '清空所有邮件'}
           >
-            <Trash2 className="h-4 w-4" />
-            <span>{isClearing ? '清空中...' : '清空邮箱'}</span>
+            <Trash2 className="h-4 w-4 flex-shrink-0" />
+            <span className="text-sm sm:text-base">{isClearing ? '清空中...' : '清空邮箱'}</span>
           </button>
         </div>
 

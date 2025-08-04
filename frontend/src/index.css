@@ -7,24 +7,79 @@
 @layer base {
   html {
     font-family: 'Inter', system-ui, sans-serif;
+    /* Improve text rendering on mobile */
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   body {
     @apply bg-gray-50 text-gray-900;
+    /* Prevent horizontal scroll on mobile */
+    overflow-x: hidden;
+    /* Improve touch scrolling */
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Improve focus visibility for accessibility */
+  *:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+  }
+
+  /* Hide focus outline for mouse users */
+  .js-focus-visible *:focus:not(.focus-visible) {
+    outline: none;
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+    @apply bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 touch-manipulation;
   }
 
   .btn-secondary {
-    @apply bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+    @apply bg-gray-200 hover:bg-gray-300 active:bg-gray-400 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors duration-200 touch-manipulation;
   }
 
   .card {
     @apply bg-white rounded-lg shadow-sm border border-gray-200;
+  }
+
+  /* Touch-friendly interactions */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Smooth scrolling for mobile */
+  .smooth-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
+  /* Prevent text selection on interactive elements */
+  .no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+
+  /* Loading shimmer effect */
+  .shimmer {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+
+    100% {
+      background-position: 200% 0;
+    }
   }
 }
 
@@ -109,6 +164,9 @@ il HTML Content Styles */
 
 .mail-html-content img {
   @apply max-w-full h-auto rounded-md;
+  /* Prevent layout shift while loading */
+  width: auto;
+  height: auto;
 }
 
 .mail-html-content blockquote {
@@ -125,4 +183,78 @@ il HTML Content Styles */
 
 .mail-html-content pre code {
   @apply bg-transparent p-0;
+}
+
+/ * Mobile-specific optimizations */ @media (max-width: 640px) {
+  /* Reduce motion for better performance on mobile */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Optimize scrolling performance */
+  .scroll-container {
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+  }
+
+  /* Improve tap targets */
+  button:not(.no-min-size),
+  a:not(.no-min-size),
+  input:not(.no-min-size),
+  select:not(.no-min-size),
+  textarea:not(.no-min-size) {
+    min-height: 44px;
+  }
+
+  /* Prevent zoom on input focus */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  /* Optimize mail content for mobile */
+  .mail-html-content {
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .mail-html-content table {
+    font-size: 14px;
+    overflow-x: auto;
+    display: block;
+    white-space: nowrap;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .card {
+    @apply border-2 border-gray-400;
+  }
+
+  button {
+    @apply border-2 border-current;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -7,6 +7,7 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import MailboxInfo from '../components/MailboxInfo';
 import MailList from '../components/MailList';
 import ActionButtons from '../components/ActionButtons';
+import { MailboxInfoSkeleton, MailListSkeleton, ActionButtonsSkeleton } from '../components/LoadingSkeletons';
 
 const MailboxPage: React.FC = () => {
   const { mailboxId } = useParams<{ mailboxId: string }>();
@@ -155,14 +156,13 @@ const MailboxPage: React.FC = () => {
     }
   };
 
-  // Show loading state
+  // Show loading state with skeletons
   if (mailboxLoading && !mailbox) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">加载邮箱信息...</p>
-        </div>
+      <div className="space-y-4 sm:space-y-6">
+        <MailboxInfoSkeleton />
+        <ActionButtonsSkeleton />
+        <MailListSkeleton />
       </div>
     );
   }
@@ -190,7 +190,7 @@ const MailboxPage: React.FC = () => {
   const canExtend = mailbox ? mailbox.extensionCount < 2 : false;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Mailbox Info Component */}
       <MailboxInfo
         address={mailbox.address}
