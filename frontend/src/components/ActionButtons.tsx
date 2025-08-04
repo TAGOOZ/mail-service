@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { 
-  RefreshCw, 
-  Plus, 
-  Clock, 
-  Trash2, 
+import {
+  RefreshCw,
+  Plus,
+  Clock,
+  Trash2,
   AlertTriangle,
   CheckCircle,
   X
 } from 'lucide-react';
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { useToast } from '../contexts/ToastContext';
 
 interface ActionButtonsProps {
   mailboxId: string;
@@ -69,9 +71,9 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             </div>
             <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           </div>
-          
+
           <p className="text-gray-600 mb-6">{message}</p>
-          
+
           <div className="flex space-x-3 justify-end">
             <button
               onClick={onCancel}
@@ -107,13 +109,20 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   const [showGenerateConfirm, setShowGenerateConfirm] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
 
+  const { handleError } = useErrorHandler();
+  const { showSuccess } = useToast();
+
   const handleGenerateNew = () => {
     setShowGenerateConfirm(true);
   };
 
-  const handleConfirmGenerate = () => {
+  const handleConfirmGenerate = async () => {
     setShowGenerateConfirm(false);
-    onGenerateNew();
+    try {
+      await onGenerateNew();
+    } catch (error) {
+      handleError(error, () => handleConfirmGenerate(), '生成新邮箱失败');
+    }
   };
 
   const handleClearAll = () => {
@@ -124,11 +133,12 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   const handleConfirmClear = async () => {
     setIsClearing(true);
     setShowClearConfirm(false);
-    
+
     try {
       await onClearAllMails();
+      showSuccess('邮箱清空成功', '所有邮件已被删除');
     } catch (error) {
-      console.error('Failed to clear mails:', error);
+      handleError(error, () => handleConfirmClear(), '清空邮箱失败');
     } finally {
       setIsClearing(false);
     }
@@ -152,13 +162,12 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
           <button
             onClick={onExtendExpiry}
             disabled={!canExtend || isExtending}
-            className={`flex items-center justify-center space-x-2 px-3 sm:px-4 py-3 sm:py-2 rounded-md font-medium transition-colors touch-manipulation active:scale-95 min-h-[44px] sm:min-h-0 ${
-              canExtend && !isExtending
-                ? 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
+            className={`flex items-center justify-center space-x-2 px-3 sm:px-4 py-3 sm:py-2 rounded-md font-medium transition-colors touch-manipulation active:scale-95 min-h-[44px] sm:min-h-0 ${canExtend && !isExtending
+              ? 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
             title={
-              !canExtend 
+              !canExtend
                 ? '已达到最大延期次数'
                 : '延长邮箱有效期12小时'
             }
@@ -182,11 +191,10 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
           <button
             onClick={handleClearAll}
             disabled={mailCount === 0 || isClearing}
-            className={`flex items-center justify-center space-x-2 px-3 sm:px-4 py-3 sm:py-2 rounded-md font-medium transition-colors touch-manipulation active:scale-95 min-h-[44px] sm:min-h-0 ${
-              mailCount > 0 && !isClearing
-                ? 'bg-red-600 text-white hover:bg-red-700 active:bg-red-800'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
+            className={`flex items-center justify-center space-x-2 px-3 sm:px-4 py-3 sm:py-2 rounded-md font-medium transition-colors touch-manipulation active:scale-95 min-h-[44px] sm:min-h-0 ${mailCount > 0 && !isClearing
+              ? 'bg-red-600 text-white hover:bg-red-700 active:bg-red-800'
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
             title={mailCount === 0 ? '没有邮件可清空' : '清空所有邮件'}
           >
             <Trash2 className="h-4 w-4 flex-shrink-0" />
@@ -202,14 +210,14 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
               <span>正在延长邮箱有效期...</span>
             </div>
           )}
-          
+
           {isRefreshing && (
             <div className="flex items-center space-x-2 text-sm text-gray-600">
               <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-600"></div>
               <span>正在刷新邮件列表...</span>
             </div>
           )}
-          
+
           {isClearing && (
             <div className="flex items-center space-x-2 text-sm text-red-600">
               <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-600"></div>

@@ -53,36 +53,41 @@ apiClient.interceptors.response.use(
     // Handle authentication errors
     if (error.response?.status === 401) {
       removeToken();
-      window.location.href = '/';
+      // Don't redirect immediately, let the component handle it
       return Promise.reject(error);
     }
 
-    // Handle rate limiting
+    // Handle rate limiting with exponential backoff
     if (error.response?.status === 429) {
       const retryAfter = error.response.headers['retry-after'];
       const delay = retryAfter ? parseInt(retryAfter) * 1000 : RETRY_DELAY;
 
-      await new Promise(resolve => setTimeout(resolve, delay));
-      return apiClient(originalRequest);
+      // Only retry if not already retried too many times
+      if (
+        !originalRequest._retryCount ||
+        originalRequest._retryCount < MAX_RETRIES
+      ) {
+        originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return apiClient(originalRequest);
+      }
     }
 
-    // Retry logic for network errors and 5xx errors
-    if (
-      (!error.response || error.response.status >= 500) &&
-      originalRequest &&
-      !originalRequest._retry &&
-      originalRequest._retryCount < MAX_RETRIES
-    ) {
-      originalRequest._retry = true;
-      originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
+    // Enhanced error information
+    const enhancedError = {
+      ...error,
+      isNetworkError: !error.response,
+      isServerError: error.response?.status
+        ? error.response.status >= 500
+        : false,
+      isClientError: error.response?.status
+        ? error.response.status >= 400 && error.response.status < 500
+        : false,
+      statusCode: error.response?.status,
+      errorData: error.response?.data,
+    };
 
-      const delay = RETRY_DELAY * Math.pow(2, originalRequest._retryCount - 1);
-      await new Promise(resolve => setTimeout(resolve, delay));
-
-      return apiClient(originalRequest);
-    }
-
-    return Promise.reject(error);
+    return Promise.reject(enhancedError);
   }
 );
 

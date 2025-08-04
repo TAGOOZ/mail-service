@@ -1,9 +1,16 @@
 import { useCallback } from 'react';
 import { useMailboxContext } from '../contexts/MailboxContext';
+import { useToast } from '../contexts/ToastContext';
 import { mailApi, Mail } from '../lib/mailboxApi';
+import {
+  handleErrorWithToast,
+  getOperationErrorMessage,
+} from '../utils/errorHandler';
+import { withRetry, retryConditions } from '../utils/retryMechanism';
 
 export const useMails = () => {
   const { state, dispatch } = useMailboxContext();
+  const { showSuccess, showToast } = useToast();
 
   // Load mails for current mailbox
   const loadMails = useCallback(
@@ -94,16 +101,27 @@ export const useMails = () => {
   const deleteMail = useCallback(
     async (mailboxId: string, mailId: string) => {
       try {
-        await mailApi.deleteMail(mailboxId, mailId);
+        await withRetry(() => mailApi.deleteMail(mailboxId, mailId), {
+          maxRetries: 2,
+          retryCondition: retryConditions.networkErrors,
+          onRetry: attempt => {
+            showToast('info', '重试中...', `正在尝试第 ${attempt} 次删除邮件`);
+          },
+        });
+
         dispatch({ type: 'REMOVE_MAIL', payload: mailId });
+        showSuccess('邮件删除成功');
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Failed to delete mail';
+        const errorMessage = getOperationErrorMessage('delete_mail', error);
         dispatch({ type: 'SET_ERROR', payload: errorMessage });
+
+        handleErrorWithToast(error, showToast, () =>
+          deleteMail(mailboxId, mailId)
+        );
         throw error;
       }
     },
-    [dispatch]
+    [dispatch, showSuccess, showToast]
   );
 
   // Delete multiple mails
@@ -133,16 +151,25 @@ export const useMails = () => {
   const clearAllMails = useCallback(
     async (mailboxId: string) => {
       try {
-        await mailApi.clearAllMails(mailboxId);
+        await withRetry(() => mailApi.clearAllMails(mailboxId), {
+          maxRetries: 2,
+          retryCondition: retryConditions.networkErrors,
+          onRetry: attempt => {
+            showToast('info', '重试中...', `正在尝试第 ${attempt} 次清空邮箱`);
+          },
+        });
+
         dispatch({ type: 'CLEAR_MAILS' });
+        showSuccess('邮箱清空成功', '所有邮件已被删除');
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Failed to clear mails';
+        const errorMessage = getOperationErrorMessage('clear_mails', error);
         dispatch({ type: 'SET_ERROR', payload: errorMessage });
+
+        handleErrorWithToast(error, showToast, () => clearAllMails(mailboxId));
         throw error;
       }
     },
-    [dispatch]
+    [dispatch, showSuccess, showToast]
   );
 
   // Mark mail as read

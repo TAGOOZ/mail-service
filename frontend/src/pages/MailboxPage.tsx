@@ -4,6 +4,7 @@ import { Mail } from 'lucide-react';
 import { useMailbox } from '../hooks/useMailbox';
 import { useMails } from '../hooks/useMails';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { useToast } from '../contexts/ToastContext';
 import MailboxInfo from '../components/MailboxInfo';
 import MailList from '../components/MailList';
 import ActionButtons from '../components/ActionButtons';
@@ -13,22 +14,23 @@ const MailboxPage: React.FC = () => {
   const { mailboxId } = useParams<{ mailboxId: string }>();
   const navigate = useNavigate();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
-  const { 
-    mailbox, 
-    loading: mailboxLoading, 
-    error: mailboxError, 
-    loadMailbox, 
+  const { showSuccess, showError } = useToast();
+
+  const {
+    mailbox,
+    loading: mailboxLoading,
+    error: mailboxError,
+    loadMailbox,
     extendMailbox,
     generateMailbox
   } = useMailbox();
-  
+
   const { requestNotificationPermission, isConnected } = useWebSocket();
-  const { 
-    mails, 
-    totalMails, 
-    loading: mailsLoading, 
-    error: mailsError, 
+  const {
+    mails,
+    totalMails,
+    loading: mailsLoading,
+    error: mailsError,
     loadMails,
     hasMoreMails,
     loadMoreMails,
@@ -55,10 +57,14 @@ const MailboxPage: React.FC = () => {
     }
   }, [mailbox, requestNotificationPermission]);
 
-  const handleCopyAddress = () => {
+  const handleCopyAddress = async () => {
     if (mailbox?.address) {
-      navigator.clipboard.writeText(mailbox.address);
-      // TODO: Show toast notification
+      try {
+        await navigator.clipboard.writeText(mailbox.address);
+        showSuccess('地址已复制', '邮箱地址已复制到剪贴板');
+      } catch (error) {
+        showError('复制失败', '无法复制到剪贴板，请手动复制');
+      }
     }
   };
 
@@ -67,7 +73,9 @@ const MailboxPage: React.FC = () => {
       setIsRefreshing(true);
       try {
         await loadMails(mailboxId);
+        showSuccess('刷新成功', '邮件列表已更新');
       } catch (error) {
+        // Error handling is done in the hook
         console.error('Failed to refresh mails:', error);
       } finally {
         setIsRefreshing(false);
@@ -134,8 +142,9 @@ const MailboxPage: React.FC = () => {
     if (mailboxId) {
       try {
         await extendMailbox(mailboxId);
-        // TODO: Show success toast
+        // Success message is handled in the hook
       } catch (error) {
+        // Error handling is done in the hook
         console.error('Failed to extend mailbox:', error);
       }
     }
