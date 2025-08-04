@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  ArrowLeft, 
-  Download, 
-  Paperclip, 
-  Eye, 
-  EyeOff, 
-  Mail, 
-  Clock, 
+import {
+  ArrowLeft,
+  Download,
+  Paperclip,
+  Eye,
+  EyeOff,
+  Mail,
+  Clock,
   User,
   FileText,
   Image as ImageIcon,
@@ -37,17 +37,38 @@ const MailContent: React.FC<MailContentProps> = ({
   useEffect(() => {
     if (mail.htmlContent) {
       const sanitized = DOMPurify.sanitize(mail.htmlContent, {
+        // Strict whitelist of allowed tags
         ALLOWED_TAGS: [
           'p', 'br', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-          'strong', 'b', 'em', 'i', 'u', 'a', 'ul', 'ol', 'li',
+          'strong', 'b', 'em', 'i', 'u', 'ul', 'ol', 'li',
           'table', 'thead', 'tbody', 'tr', 'td', 'th',
-          'img', 'blockquote', 'pre', 'code'
+          'blockquote', 'pre', 'code', 'hr'
         ],
+        // Strict whitelist of allowed attributes
         ALLOWED_ATTR: [
-          'href', 'src', 'alt', 'title', 'class', 'style',
-          'target', 'rel', 'width', 'height'
+          'class', 'style', 'title', 'alt', 'width', 'height',
+          'colspan', 'rowspan', 'align', 'valign'
         ],
-        ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|data):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+        // Remove all URI schemes except safe ones
+        ALLOWED_URI_REGEXP: /^(?:mailto:|tel:|#)/i,
+        // Additional security options
+        FORBID_TAGS: ['script', 'object', 'embed', 'form', 'input', 'button', 'select', 'textarea', 'iframe', 'frame', 'frameset'],
+        FORBID_ATTR: ['onclick', 'onload', 'onerror', 'onmouseover', 'onfocus', 'onblur', 'onchange', 'onsubmit'],
+        // Remove all scripts and event handlers
+        WHOLE_DOCUMENT: false,
+        RETURN_DOM: false,
+        RETURN_DOM_FRAGMENT: false,
+        RETURN_TRUSTED_TYPE: false,
+        // Sanitize CSS
+        SANITIZE_DOM: true,
+        // Remove data attributes that could contain scripts
+        FORBID_CONTENTS: ['script', 'style'],
+        // Additional hooks for custom sanitization
+        CUSTOM_ELEMENT_HANDLING: {
+          tagNameCheck: null,
+          attributeNameCheck: null,
+          allowCustomizedBuiltInElements: false,
+        },
       });
       setSanitizedHtml(sanitized);
     }
@@ -130,7 +151,7 @@ const MailContent: React.FC<MailContentProps> = ({
             <ArrowLeft className="h-4 w-4" />
             <span className="text-sm sm:text-base">返回邮件列表</span>
           </button>
-          
+
           {mail.htmlContent && (
             <button
               onClick={() => setShowHtml(!showHtml)}
@@ -156,7 +177,7 @@ const MailContent: React.FC<MailContentProps> = ({
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 break-words">
             {mail.subject || '(无主题)'}
           </h1>
-          
+
           <div className="flex flex-col space-y-3 sm:space-y-2">
             <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
               <div className="flex items-center space-x-2 min-w-0">
@@ -168,7 +189,7 @@ const MailContent: React.FC<MailContentProps> = ({
                 <span className="text-gray-600 truncate text-sm sm:text-base">{mail.to}</span>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-2 text-sm text-gray-500">
               <Clock className="h-4 w-4 flex-shrink-0" />
               <span>{formatDate(mail.receivedAt)}</span>
@@ -198,7 +219,7 @@ const MailContent: React.FC<MailContentProps> = ({
               附件 ({mail.attachments.length})
             </span>
           </div>
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {mail.attachments.map((attachment, index) => (
               <AttachmentItem
@@ -268,7 +289,7 @@ const AttachmentItem: React.FC<AttachmentItemProps> = ({
       <div className="flex-shrink-0">
         {getAttachmentIcon(attachment.contentType)}
       </div>
-      
+
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-gray-900 truncate">
           {attachment.filename}
@@ -277,7 +298,7 @@ const AttachmentItem: React.FC<AttachmentItemProps> = ({
           {formatSize(attachment.size)} • {attachment.contentType}
         </p>
       </div>
-      
+
       <button
         onClick={onDownload}
         className="flex-shrink-0 p-2 text-gray-400 hover:text-gray-600 transition-colors touch-manipulation active:scale-95 min-h-[36px] min-w-[36px]"

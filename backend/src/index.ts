@@ -8,7 +8,19 @@ import { createServer } from 'http';
 
 import { errorHandler } from './middleware/errorHandler';
 import { authMiddleware } from './middleware/auth';
+import {
+  csrfMiddleware,
+  getCsrfToken,
+  addCsrfTokenHeader,
+} from './middleware/csrf';
+import { rateLimiters } from './middleware/rateLimiting';
+import {
+  securityMonitoringMiddleware,
+  securityHeadersMiddleware,
+  getSecurityStats,
+} from './middleware/securityMonitoring';
 import { logger } from './utils/logger';
+import { securityLogger } from './utils/securityLogger';
 import { DatabaseService } from './services/database';
 import { CleanupScheduler } from './services/cleanupScheduler';
 import { mailReceivingService } from './services/mailReceivingService';
@@ -31,10 +43,26 @@ app.use(
         styleSrc: ["'self'", "'unsafe-inline'"],
         scriptSrc: ["'self'"],
         imgSrc: ["'self'", 'data:', 'https:'],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
       },
+    },
+    crossOriginEmbedderPolicy: false, // Allow embedding for email content
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
     },
   })
 );
+
+// Additional security headers
+app.use(securityHeadersMiddleware);
+
+// Security monitoring middleware (before other middleware)
+app.use(securityMonitoringMiddleware);
 
 // CORS configuration
 app.use(
@@ -46,22 +74,14 @@ app.use(
   })
 );
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: {
-    error: {
-      type: 'RATE_LIMIT_ERROR',
-      message: 'Too many requests from this IP, please try again later.',
-      code: 'RATE_LIMIT_EXCEEDED',
-    },
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+// Rate limiting with enhanced security
+app.use('/api', rateLimiters.general);
 
-app.use('/api', limiter);
+// CSRF protection (after body parsing)
+app.use(csrfMiddleware);
+
+// Add CSRF token to response headers
+app.use(addCsrfTokenHeader);
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -77,6 +97,26 @@ app.use(
     },
   })
 );
+
+// CSRF token endpoint
+app.get('/api/csrf-token', getCsrfToken);
+
+// Security statistics endpoint (protected)
+app.get('/api/security/stats', authMiddleware, (req, res) => {
+  try {
+    const stats = getSecurityStats();
+    res.json(stats);
+  } catch (error) {
+    logger.error('Failed to get security stats:', error);
+    res.status(500).json({
+      error: {
+        type: 'INTERNAL_ERROR',
+        message: 'Failed to get security statistics',
+        code: 'SECURITY_STATS_ERROR',
+      },
+    });
+  }
+});
 
 // Health check endpoint
 app.get('/health', async (req, res) => {

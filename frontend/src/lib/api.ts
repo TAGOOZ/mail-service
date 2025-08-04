@@ -6,6 +6,10 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
 
+// CSRF token management
+let csrfToken: string | null = null;
+let csrfTokenExpiry: Date | null = null;
+
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -34,13 +38,52 @@ const removeToken = (): void => {
   authService.clearAuthData();
 };
 
-// Request interceptor for authentication
+// CSRF token management functions
+const getCsrfToken = async (): Promise<string> => {
+  // Check if we have a valid cached token
+  if (csrfToken && csrfTokenExpiry && new Date() < csrfTokenExpiry) {
+    return csrfToken;
+  }
+
+  try {
+    const response = await axios.get(`${API_BASE_URL}/csrf-token`);
+    csrfToken = response.data.csrfToken;
+    csrfTokenExpiry = new Date(response.data.expires);
+    return csrfToken;
+  } catch (error) {
+    console.error('Failed to get CSRF token:', error);
+    throw new Error('Failed to get CSRF token');
+  }
+};
+
+const clearCsrfToken = (): void => {
+  csrfToken = null;
+  csrfTokenExpiry = null;
+};
+
+// Request interceptor for authentication and CSRF protection
 apiClient.interceptors.request.use(
-  config => {
+  async config => {
+    // Add authentication token
     const token = authService.getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Add CSRF token for state-changing requests
+    if (
+      ['post', 'put', 'patch', 'delete'].includes(
+        config.method?.toLowerCase() || ''
+      )
+    ) {
+      try {
+        const csrf = await getCsrfToken();
+        config.headers['X-CSRF-Token'] = csrf;
+      } catch (error) {
+        console.warn('Failed to get CSRF token, request may fail:', error);
+      }
+    }
+
     return config;
   },
   error => {
@@ -55,6 +98,19 @@ apiClient.interceptors.response.use(
   },
   async (error: AxiosError) => {
     const originalRequest = error.config as any;
+
+    // Handle CSRF errors
+    if (
+      error.response?.status === 403 &&
+      error.response?.data?.error?.code === 'CSRF_TOKEN_INVALID'
+    ) {
+      // Clear cached CSRF token and retry
+      clearCsrfToken();
+      if (!originalRequest._csrfRetry) {
+        originalRequest._csrfRetry = true;
+        return apiClient(originalRequest);
+      }
+    }
 
     // Handle authentication errors
     if (error.response?.status === 401) {
@@ -153,4 +209,12 @@ const apiRequest = async <T>(
   }
 };
 
-export { apiClient, apiRequest, getToken, setToken, removeToken };
+export {
+  apiClient,
+  apiRequest,
+  getToken,
+  setToken,
+  removeToken,
+  getCsrfToken,
+  clearCsrfToken,
+};
