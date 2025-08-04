@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosError, AxiosResponse } from 'axios';
+import { authService } from '../services/authService';
 
 // API base configuration
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -14,24 +15,29 @@ const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Token management
+// Token management (legacy support)
 const getToken = (): string | null => {
-  return localStorage.getItem('mailbox_token');
+  return authService.getToken();
 };
 
 const setToken = (token: string): void => {
-  localStorage.setItem('mailbox_token', token);
+  const mailboxId = authService.getMailboxId();
+  if (mailboxId) {
+    authService.setAuthData(token, mailboxId);
+  } else {
+    // Fallback to localStorage for backward compatibility
+    localStorage.setItem('mailbox_token', token);
+  }
 };
 
 const removeToken = (): void => {
-  localStorage.removeItem('mailbox_token');
-  localStorage.removeItem('mailbox_id');
+  authService.clearAuthData();
 };
 
 // Request interceptor for authentication
 apiClient.interceptors.request.use(
   config => {
-    const token = getToken();
+    const token = authService.getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -52,8 +58,26 @@ apiClient.interceptors.response.use(
 
     // Handle authentication errors
     if (error.response?.status === 401) {
-      removeToken();
-      // Don't redirect immediately, let the component handle it
+      // Check if this is a token refresh request
+      const isRefreshRequest = originalRequest.url?.includes('/mailbox/');
+
+      if (!isRefreshRequest && !originalRequest._isRetry) {
+        // Try to refresh token automatically
+        try {
+          await authService.refreshToken();
+          originalRequest._isRetry = true;
+          return apiClient(originalRequest);
+        } catch (refreshError) {
+          // Refresh failed, clear auth data and let component handle
+          authService.clearAuthData();
+          window.dispatchEvent(new CustomEvent('auth:token-expired'));
+        }
+      } else {
+        // This is a refresh request or retry failed, clear auth data
+        authService.clearAuthData();
+        window.dispatchEvent(new CustomEvent('auth:token-expired'));
+      }
+
       return Promise.reject(error);
     }
 

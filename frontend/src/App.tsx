@@ -4,6 +4,7 @@ import { MailboxProvider } from './contexts/MailboxContext';
 import { ToastProvider } from './contexts/ToastContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import Layout from './components/Layout';
+import { SessionRecovery } from './components/SessionRecovery';
 import { PageLoading } from './components/LoadingSkeletons';
 
 // Lazy load pages for better performance
@@ -17,16 +18,18 @@ function App() {
     <ErrorBoundary>
       <ToastProvider>
         <MailboxProvider>
-          <Layout>
-            <Suspense fallback={<PageLoading message="加载页面中..." />}>
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/mailbox/:mailboxId" element={<MailboxPage />} />
-                <Route path="/mailbox/:mailboxId/mail/:mailId" element={<MailDetailPage />} />
-                <Route path="*" element={<NotFoundPage />} />
-              </Routes>
-            </Suspense>
-          </Layout>
+          <SessionRecovery>
+            <Layout>
+              <Suspense fallback={<PageLoading message="加载页面中..." />}>
+                <Routes>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/mailbox/:mailboxId" element={<MailboxPage />} />
+                  <Route path="/mailbox/:mailboxId/mail/:mailId" element={<MailDetailPage />} />
+                  <Route path="*" element={<NotFoundPage />} />
+                </Routes>
+              </Suspense>
+            </Layout>
+          </SessionRecovery>
         </MailboxProvider>
       </ToastProvider>
     </ErrorBoundary>

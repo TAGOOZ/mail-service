@@ -181,7 +181,7 @@ export const ShimmerSkeleton: React.FC<{
   };
 
 // Mobile-optimized action buttons skeleton
-export const ActionButtonsSkeleton: React.FC = () => {
+export const MobileActionButtonsSkeleton: React.FC = () => {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4 animate-pulse">
       <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2 sm:gap-3">

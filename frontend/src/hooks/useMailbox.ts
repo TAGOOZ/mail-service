@@ -2,8 +2,8 @@ import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMailboxContext } from '../contexts/MailboxContext';
 import { useToast } from '../contexts/ToastContext';
+import { useAuth } from './useAuth';
 import { mailboxApi, Mailbox } from '../lib/mailboxApi';
-import { setToken, removeToken } from '../lib/api';
 import {
   handleErrorWithToast,
   getOperationErrorMessage,
@@ -14,6 +14,7 @@ export const useMailbox = () => {
   const { state, dispatch } = useMailboxContext();
   const navigate = useNavigate();
   const { showSuccess, showError, showToast } = useToast();
+  const { login, logout } = useAuth();
 
   // Generate new mailbox
   const generateMailbox = useCallback(async () => {
@@ -33,9 +34,8 @@ export const useMailbox = () => {
         },
       });
 
-      // Save to localStorage
-      localStorage.setItem('mailbox_id', mailbox.id);
-      setToken(mailbox.token);
+      // Save authentication data using auth service
+      login(mailbox.token, mailbox.id);
 
       dispatch({ type: 'SET_MAILBOX', payload: mailbox });
       dispatch({ type: 'CLEAR_MAILS' });
@@ -94,7 +94,7 @@ export const useMailbox = () => {
           errorMessage.includes('过期') ||
           errorMessage.includes('权限')
         ) {
-          removeToken();
+          logout();
           setTimeout(() => navigate('/'), 2000); // Delay to show error message
         }
 
@@ -168,8 +168,8 @@ export const useMailbox = () => {
           },
         });
 
-        // Clear local storage and state
-        removeToken();
+        // Clear authentication data and state
+        logout();
         dispatch({ type: 'RESET_STATE' });
 
         showSuccess('邮箱删除成功', '邮箱及所有邮件已被删除');

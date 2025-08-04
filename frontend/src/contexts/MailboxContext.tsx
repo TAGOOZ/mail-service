@@ -41,13 +41,13 @@ const mailboxReducer = (state: MailboxState, action: MailboxAction): MailboxStat
   switch (action.type) {
     case 'SET_LOADING':
       return { ...state, loading: action.payload };
-    
+
     case 'SET_ERROR':
       return { ...state, error: action.payload, loading: false };
-    
+
     case 'SET_MAILBOX':
       return { ...state, currentMailbox: action.payload, error: null };
-    
+
     case 'SET_MAILS':
       return {
         ...state,
@@ -57,29 +57,29 @@ const mailboxReducer = (state: MailboxState, action: MailboxAction): MailboxStat
         loading: false,
         error: null,
       };
-    
+
     case 'ADD_MAIL':
       return {
         ...state,
         mails: [action.payload, ...state.mails],
         totalMails: state.totalMails + 1,
       };
-    
+
     case 'UPDATE_MAIL':
       return {
         ...state,
-        mails: state.mails.map(mail => 
+        mails: state.mails.map(mail =>
           mail.id === action.payload.id ? action.payload : mail
         ),
       };
-    
+
     case 'REMOVE_MAIL':
       return {
         ...state,
         mails: state.mails.filter(mail => mail.id !== action.payload),
         totalMails: Math.max(0, state.totalMails - 1),
       };
-    
+
     case 'CLEAR_MAILS':
       return {
         ...state,
@@ -87,13 +87,13 @@ const mailboxReducer = (state: MailboxState, action: MailboxAction): MailboxStat
         totalMails: 0,
         hasMoreMails: false,
       };
-    
+
     case 'SET_CONNECTION_STATUS':
       return { ...state, isConnected: action.payload };
-    
+
     case 'RESET_STATE':
       return initialState;
-    
+
     default:
       return state;
   }
@@ -115,16 +115,7 @@ interface MailboxProviderProps {
 export const MailboxProvider: React.FC<MailboxProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(mailboxReducer, initialState);
 
-  // Load saved mailbox from localStorage on mount
-  useEffect(() => {
-    const savedMailboxId = localStorage.getItem('mailbox_id');
-    const savedToken = localStorage.getItem('mailbox_token');
-    
-    if (savedMailboxId && savedToken) {
-      // This will be implemented when we have the API hooks
-      console.log('Restoring mailbox session:', savedMailboxId);
-    }
-  }, []);
+  // Session recovery is now handled by SessionRecovery component
 
   return (
     <MailboxContext.Provider value={{ state, dispatch }}>

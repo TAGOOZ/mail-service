@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Mail } from 'lucide-react';
 import { useWebSocket } from '../hooks/useWebSocket';
 import ConnectionStatus from './ConnectionStatus';
+import { SessionStatusIndicator } from './SessionRecovery';
 
 const Header: React.FC = () => {
   const { connectionStatus } = useWebSocket();
@@ -15,19 +16,20 @@ const Header: React.FC = () => {
             <Mail className="h-6 w-6 sm:h-8 sm:w-8" />
             <span className="text-lg sm:text-xl font-bold">临时邮箱</span>
           </Link>
-          
+
           <div className="flex items-center space-x-2 sm:space-x-4">
+            <SessionStatusIndicator />
             <ConnectionStatus status={connectionStatus} className="hidden sm:flex" />
-            
+
             <nav className="flex items-center space-x-3 sm:space-x-6">
-              <Link 
-                to="/" 
+              <Link
+                to="/"
                 className="text-gray-600 hover:text-gray-900 transition-colors text-sm sm:text-base touch-manipulation active:scale-95 px-2 py-1 rounded"
               >
                 首页
               </Link>
-              <a 
-                href="#about" 
+              <a
+                href="#about"
                 className="text-gray-600 hover:text-gray-900 transition-colors text-sm sm:text-base touch-manipulation active:scale-95 px-2 py-1 rounded hidden sm:inline"
               >
                 关于
