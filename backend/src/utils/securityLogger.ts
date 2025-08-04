@@ -96,14 +96,16 @@ class SecurityLogger {
   }
 
   private scheduleCounterReset(): void {
-    // Reset counters every hour
-    setInterval(
-      () => {
-        this.eventCounts.clear();
-        this.lastReset = new Date();
-      },
-      60 * 60 * 1000
-    );
+    // Reset counters every hour (skip in test environment)
+    if (process.env.NODE_ENV !== 'test') {
+      setInterval(
+        () => {
+          this.eventCounts.clear();
+          this.lastReset = new Date();
+        },
+        60 * 60 * 1000
+      );
+    }
   }
 
   private incrementEventCount(eventType: SecurityEventType, ip: string): void {
@@ -147,9 +149,15 @@ class SecurityLogger {
     const logEntry = JSON.stringify(event) + '\n';
 
     try {
-      fs.appendFileSync(this.securityLogFile, logEntry);
+      // Skip actual file writing in test environment
+      if (process.env.NODE_ENV !== 'test') {
+        fs.appendFileSync(this.securityLogFile, logEntry);
+      }
     } catch (error) {
-      logger.error('Failed to write security log', error);
+      // Only log error in non-test environments to avoid test noise
+      if (process.env.NODE_ENV !== 'test') {
+        logger.error('Failed to write security log', error);
+      }
     }
   }
 
@@ -279,7 +287,17 @@ class SecurityLogger {
 
   // Rotate security logs
   public rotateSecurityLog(): void {
+    // Skip rotation in test environment
+    if (process.env.NODE_ENV === 'test') {
+      return;
+    }
+
     try {
+      // Check if file exists before trying to stat it
+      if (!fs.existsSync(this.securityLogFile)) {
+        return;
+      }
+
       const stats = fs.statSync(this.securityLogFile);
       const maxSize = 50 * 1024 * 1024; // 50MB
 
@@ -294,7 +312,10 @@ class SecurityLogger {
         logger.info('Security log file rotated', { archiveFile });
       }
     } catch (error) {
-      logger.error('Failed to rotate security log file', error);
+      // Only log error in non-test environments to avoid test noise
+      if (process.env.NODE_ENV !== 'test') {
+        logger.error('Failed to rotate security log file', error);
+      }
     }
   }
 }
