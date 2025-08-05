@@ -33,6 +33,13 @@ export const csrfMiddleware = (
     return next();
   }
 
+  // In development, disable CSRF protection for easier testing
+  if (process.env.NODE_ENV === 'development') {
+    // Add a mock csrfToken function for development
+    req.csrfToken = () => 'dev-csrf-token';
+    return next();
+  }
+
   csrfProtection(req, res, err => {
     if (err) {
       // Log CSRF attack attempts
@@ -68,7 +75,21 @@ export const csrfMiddleware = (
 // Endpoint to get CSRF token
 export const getCsrfToken = (req: Request, res: Response) => {
   try {
-    if (!req.csrfToken) {
+    // In development, return a mock token
+    if (process.env.NODE_ENV === 'development') {
+      logger.security('CSRF token generated (development)', {
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        timestamp: new Date().toISOString(),
+      });
+
+      return res.json({
+        csrfToken: 'dev-csrf-token',
+        expires: new Date(Date.now() + 3600000).toISOString(), // 1 hour
+      });
+    }
+
+    if (typeof req.csrfToken !== 'function') {
       throw new Error('CSRF token function not available');
     }
     const token = req.csrfToken();
@@ -102,7 +123,7 @@ export const addCsrfTokenHeader = (
   next: NextFunction
 ) => {
   try {
-    if (req.csrfToken) {
+    if (typeof req.csrfToken === 'function') {
       res.setHeader('X-CSRF-Token', req.csrfToken());
     }
   } catch (error) {

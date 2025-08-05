@@ -185,7 +185,8 @@ il HTML Content Styles */
   @apply bg-transparent p-0;
 }
 
-/ * Mobile-specific optimizations */ @media (max-width: 640px) {
+/* Mobile-specific optimizations */
+@media (max-width: 640px) {
   /* Reduce motion for better performance on mobile */
   @media (prefers-reduced-motion: reduce) {
     * {

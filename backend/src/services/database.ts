@@ -29,7 +29,7 @@ export class DatabaseService {
       await connectRedis();
 
       // Run database migrations
-      await MigrationRunner.runMigrations();
+      // await MigrationRunner.runMigrations();
 
       // Verify database health
       const health = await checkDatabaseHealth();

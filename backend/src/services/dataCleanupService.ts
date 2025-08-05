@@ -165,7 +165,6 @@ export class DataCleanupService {
       },
       {
         timezone: 'UTC',
-        scheduled: false,
       }
     );
 

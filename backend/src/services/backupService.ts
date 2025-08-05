@@ -77,7 +77,6 @@ export class BackupService {
         },
         {
           timezone: 'UTC',
-          scheduled: false,
         }
       );
 

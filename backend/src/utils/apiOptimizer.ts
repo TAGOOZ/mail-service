@@ -246,8 +246,10 @@ class ApiOptimizer {
     if (this.cache.size >= 1000) {
       // Max cache size
       const oldestKey = this.cache.keys().next().value;
-      this.cache.delete(oldestKey);
-      this.cacheStats.evictions++;
+      if (oldestKey) {
+        this.cache.delete(oldestKey);
+        this.cacheStats.evictions++;
+      }
     }
 
     this.cache.set(key, {

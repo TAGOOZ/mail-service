@@ -63,16 +63,16 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
       MAIL_DOMAIN: ${MAIL_DOMAIN}
-      SMTP_HOST: ${SMTP_HOST}
-      SMTP_PORT: ${SMTP_PORT}
+      SMTP_HOST: mailserver
+      SMTP_PORT: 25
+      MAIL_PORT: 2525
       CORS_ORIGIN: ${CORS_ORIGIN}
       LOG_LEVEL: ${LOG_LEVEL}
       RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS}
       RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS}
     ports:
       - '127.0.0.1:3001:3001' # Bind to localhost only, nginx will proxy
-      - '25:25' # SMTP port for receiving emails
-      - '587:587' # SMTP submission port
+      - '127.0.0.1:2525:2525' # Internal mail processing port
     depends_on:
       mongodb:
         condition: service_healthy
@@ -133,6 +133,49 @@ services:
           memory: 64M
           cpus: '0.1'
 
+  # Mail server (Postfix)
+  mailserver:
+    build:
+      context: .
+      dockerfile: Dockerfile.postfix
+    container_name: tempmail-postfix-prod
+    restart: unless-stopped
+    environment:
+      POSTFIX_MYHOSTNAME: ${MAIL_DOMAIN}
+      POSTFIX_MYDOMAIN: ${MAIL_DOMAIN}
+      POSTFIX_MYORIGIN: ${MAIL_DOMAIN}
+      POSTFIX_RELAY_HOST: ${POSTFIX_RELAY_HOST:-}
+      POSTFIX_RELAY_PORT: ${POSTFIX_RELAY_PORT:-587}
+      POSTFIX_RELAY_USERNAME: ${POSTFIX_RELAY_USERNAME:-}
+      POSTFIX_RELAY_PASSWORD: ${POSTFIX_RELAY_PASSWORD:-}
+    ports:
+      - '25:25' # SMTP port for receiving emails
+      - '587:587' # SMTP submission port
+    volumes:
+      - mailserver_prod_data:/var/spool/postfix
+      - ./config/postfix:/etc/postfix/custom:ro
+      - ./logs/postfix:/var/log/postfix
+      - /etc/localtime:/etc/localtime:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - tempmail-network
+    healthcheck:
+      test: ['CMD', 'postfix', 'status']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+
   # Nginx reverse proxy
   nginx:
     image: nginx:1.25-alpine
@@ -150,6 +193,8 @@ services:
       frontend:
         condition: service_healthy
       backend:
+        condition: service_healthy
+      mailserver:
         condition: service_healthy
     networks:
       - tempmail-network
@@ -196,6 +241,12 @@ volumes:
       type: none
       o: bind
       device: /opt/tempmail/data/redis
+  mailserver_prod_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/tempmail/data/mailserver
 
 networks:
   tempmail-network:

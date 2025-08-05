@@ -84,15 +84,15 @@ app.use(
 // Rate limiting with enhanced security
 app.use('/api', rateLimiters.general);
 
+// Body parsing middleware (must come before CSRF)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
 // CSRF protection (after body parsing)
 app.use(csrfMiddleware);
 
 // Add CSRF token to response headers
 app.use(addCsrfTokenHeader);
-
-// Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Logging middleware
 app.use(

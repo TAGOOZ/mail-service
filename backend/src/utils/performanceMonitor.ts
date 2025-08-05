@@ -69,7 +69,7 @@ class BackendPerformanceMonitor {
           );
         }
 
-        originalEnd.call(this, chunk, encoding);
+        return originalEnd.call(this, chunk, encoding);
       };
 
       next();

@@ -1,9 +1,14 @@
 #!/bin/bash
 
-# Production deployment script
-# This script deploys the TempMail application to production
+# Production Deployment Script for TempMail
+# This script handles the complete production deployment process
 
 set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+COMPOSE_FILE="$PROJECT_DIR/docker-compose.prod.yml"
+ENV_FILE="$PROJECT_DIR/.env.production"
 
 # Colors for output
 RED='\033[0;31m'
@@ -12,260 +17,267 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Configuration
-COMPOSE_FILE="docker-compose.prod.yml"
-ENV_FILE=".env.production"
-BACKUP_DIR="/opt/tempmail/backups"
-DATA_DIR="/opt/tempmail/data"
-
-# Function to print colored output
-print_status() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+# Logging function
+log() {
+    echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}"
 }
 
-print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
+warn() {
+    echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] WARNING: $1${NC}"
 }
 
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+error() {
+    echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ERROR: $1${NC}"
 }
 
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+info() {
+    echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')] INFO: $1${NC}"
 }
 
-# Function to check prerequisites
+# Check if running as root
+check_user() {
+    if [[ $EUID -eq 0 ]]; then
+        error "This script should not be run as root for security reasons"
+        exit 1
+    fi
+}
+
+# Check prerequisites
 check_prerequisites() {
-    print_status "Checking prerequisites..."
+    log "Checking prerequisites..."
     
-    # Check if Docker is installed and running
-    if ! command -v docker >/dev/null 2>&1; then
-        print_error "Docker is not installed"
+    # Check Docker
+    if ! command -v docker &> /dev/null; then
+        error "Docker is not installed"
         exit 1
     fi
     
-    if ! docker info >/dev/null 2>&1; then
-        print_error "Docker is not running"
+    # Check Docker Compose
+    if ! command -v docker-compose &> /dev/null; then
+        error "Docker Compose is not installed"
         exit 1
     fi
     
-    # Check if Docker Compose is installed
-    if ! command -v docker-compose >/dev/null 2>&1; then
-        print_error "Docker Compose is not installed"
+    # Check if user is in docker group
+    if ! groups | grep -q docker; then
+        error "Current user is not in the docker group"
         exit 1
     fi
     
-    # Check if environment file exists
-    if [ ! -f "$ENV_FILE" ]; then
-        print_error "Environment file $ENV_FILE not found"
-        print_status "Please copy .env.production and configure it with your production values"
+    # Check environment file
+    if [[ ! -f "$ENV_FILE" ]]; then
+        error "Environment file not found: $ENV_FILE"
+        error "Please copy .env.production to .env.production and configure it"
         exit 1
     fi
     
-    print_success "Prerequisites check passed"
+    log "✅ Prerequisites check passed"
 }
 
-# Function to create necessary directories
-create_directories() {
-    print_status "Creating necessary directories..."
+# Setup directories
+setup_directories() {
+    log "Setting up production directories..."
     
-    sudo mkdir -p "$DATA_DIR/mongodb"
-    sudo mkdir -p "$DATA_DIR/redis"
-    sudo mkdir -p "$BACKUP_DIR"
-    sudo mkdir -p "/opt/tempmail/logs/nginx"
-    
-    # Set proper permissions
-    sudo chown -R 1001:1001 "$DATA_DIR/mongodb"
-    sudo chown -R 999:999 "$DATA_DIR/redis"
-    sudo chown -R $(whoami):$(whoami) "/opt/tempmail/logs"
-    
-    print_success "Directories created"
-}
-
-# Function to backup existing data
-backup_data() {
-    if [ -d "$DATA_DIR/mongodb" ] && [ "$(ls -A $DATA_DIR/mongodb)" ]; then
-        print_status "Creating backup of existing data..."
-        
-        local backup_timestamp=$(date +%Y%m%d_%H%M%S)
-        local backup_path="$BACKUP_DIR/backup_$backup_timestamp"
-        
-        mkdir -p "$backup_path"
-        
-        # Backup MongoDB data
-        if docker ps --filter "name=tempmail-mongodb-prod" --filter "status=running" --format "{{.Names}}" | grep -q "tempmail-mongodb-prod"; then
-            docker exec tempmail-mongodb-prod mongodump --out /tmp/backup
-            docker cp tempmail-mongodb-prod:/tmp/backup "$backup_path/mongodb"
-        else
-            cp -r "$DATA_DIR/mongodb" "$backup_path/"
-        fi
-        
-        # Backup Redis data
-        if docker ps --filter "name=tempmail-redis-prod" --filter "status=running" --format "{{.Names}}" | grep -q "tempmail-redis-prod"; then
-            docker exec tempmail-redis-prod redis-cli BGSAVE
-            sleep 5
-            docker cp tempmail-redis-prod:/data/dump.rdb "$backup_path/"
-        fi
-        
-        print_success "Backup created at $backup_path"
+    if [[ -f "$SCRIPT_DIR/setup-production-dirs.sh" ]]; then
+        bash "$SCRIPT_DIR/setup-production-dirs.sh"
     else
-        print_status "No existing data to backup"
+        warn "Directory setup script not found, creating basic structure..."
+        mkdir -p /opt/tempmail/{data,logs,config}/{mongodb,redis,mailserver,nginx,postfix}
     fi
 }
 
-# Function to pull latest images
-pull_images() {
-    print_status "Pulling latest images..."
+# Build and start services
+deploy() {
+    log "Starting production deployment..."
+    
+    cd "$PROJECT_DIR"
+    
+    # Pull latest images
+    log "Pulling latest images..."
     docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" pull
-    print_success "Images pulled"
-}
-
-# Function to build custom images
-build_images() {
-    print_status "Building custom images..."
+    
+    # Build custom images
+    log "Building custom images..."
     docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" build --no-cache
-    print_success "Images built"
-}
-
-# Function to stop existing services
-stop_services() {
-    print_status "Stopping existing services..."
-    docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" down --remove-orphans
-    print_success "Services stopped"
-}
-
-# Function to start services
-start_services() {
-    print_status "Starting services..."
+    
+    # Start services
+    log "Starting services..."
     docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d
-    print_success "Services started"
+    
+    # Wait for services to be healthy
+    log "Waiting for services to become healthy..."
+    sleep 30
+    
+    # Check service health
+    check_health
 }
 
-# Function to wait for services to be healthy
-wait_for_health() {
-    print_status "Waiting for services to be healthy..."
+# Check service health
+check_health() {
+    log "Checking service health..."
     
-    local max_attempts=30
-    local attempt=0
+    local services=("mongodb" "redis" "backend" "frontend" "mailserver" "nginx")
+    local failed_services=()
     
-    while [ $attempt -lt $max_attempts ]; do
-        if ./scripts/health-check.sh >/dev/null 2>&1; then
-            print_success "All services are healthy"
-            return 0
+    for service in "${services[@]}"; do
+        if docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps "$service" | grep -q "healthy\|Up"; then
+            log "✅ $service is healthy"
+        else
+            error "❌ $service is not healthy"
+            failed_services+=("$service")
         fi
-        
-        attempt=$((attempt + 1))
-        print_status "Attempt $attempt/$max_attempts - waiting for services..."
-        sleep 10
     done
     
-    print_error "Services failed to become healthy within timeout"
-    return 1
-}
-
-# Function to setup monitoring
-setup_monitoring() {
-    print_status "Setting up monitoring..."
-    
-    # Add cron job for monitoring
-    (crontab -l 2>/dev/null; echo "*/5 * * * * /opt/tempmail/scripts/monitor.sh") | crontab -
-    
-    # Add cron job for health checks
-    (crontab -l 2>/dev/null; echo "*/10 * * * * /opt/tempmail/scripts/health-check.sh >> /opt/tempmail/logs/health.log 2>&1") | crontab -
-    
-    print_success "Monitoring setup complete"
-}
-
-# Function to cleanup old images
-cleanup() {
-    print_status "Cleaning up old images..."
-    docker image prune -f
-    docker system prune -f --volumes
-    print_success "Cleanup complete"
-}
-
-# Function to show deployment summary
-show_summary() {
-    echo
-    echo "=================================="
-    echo "   DEPLOYMENT SUMMARY"
-    echo "=================================="
-    echo "Application URL: https://mail.nnu.edu.kg"
-    echo "Health Check: https://mail.nnu.edu.kg/health"
-    echo "API Health: https://mail.nnu.edu.kg/api/health"
-    echo
-    echo "Logs location: /opt/tempmail/logs"
-    echo "Data location: /opt/tempmail/data"
-    echo "Backup location: /opt/tempmail/backups"
-    echo
-    echo "To view logs:"
-    echo "  docker-compose -f $COMPOSE_FILE logs -f [service_name]"
-    echo
-    echo "To check status:"
-    echo "  docker-compose -f $COMPOSE_FILE ps"
-    echo
-    echo "To run health check:"
-    echo "  ./scripts/health-check.sh"
-    echo "=================================="
-}
-
-# Main deployment function
-main() {
-    echo "=================================="
-    echo "   TEMPMAIL PRODUCTION DEPLOYMENT"
-    echo "=================================="
-    echo "Starting deployment at $(date)"
-    echo
-    
-    check_prerequisites
-    create_directories
-    backup_data
-    pull_images
-    build_images
-    stop_services
-    start_services
-    
-    if wait_for_health; then
-        setup_monitoring
-        cleanup
-        print_success "Deployment completed successfully!"
-        show_summary
-    else
-        print_error "Deployment failed - services are not healthy"
-        print_status "Check logs with: docker-compose -f $COMPOSE_FILE logs"
+    if [[ ${#failed_services[@]} -gt 0 ]]; then
+        error "Some services failed to start properly: ${failed_services[*]}"
+        error "Check logs with: $0 logs"
         exit 1
+    fi
+    
+    log "🎉 All services are healthy!"
+}
+
+# Show service status
+status() {
+    log "Service Status:"
+    docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
+    
+    echo ""
+    log "Service Health:"
+    docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+}
+
+# Show logs
+logs() {
+    local service="$1"
+    local tail_lines="${2:-100}"
+    
+    if [[ -n "$service" ]]; then
+        log "Showing logs for $service (last $tail_lines lines):"
+        docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" logs --tail="$tail_lines" "$service"
+    else
+        log "Showing logs for all services (last $tail_lines lines):"
+        docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" logs --tail="$tail_lines"
     fi
 }
 
-# Handle script arguments
-case "${1:-deploy}" in
-    "deploy")
-        main
-        ;;
-    "health")
-        ./scripts/health-check.sh
-        ;;
-    "logs")
-        docker-compose -f "$COMPOSE_FILE" logs -f "${2:-}"
-        ;;
-    "status")
-        docker-compose -f "$COMPOSE_FILE" ps
-        ;;
-    "stop")
-        docker-compose -f "$COMPOSE_FILE" down
-        ;;
-    "restart")
-        docker-compose -f "$COMPOSE_FILE" restart "${2:-}"
-        ;;
-    *)
-        echo "Usage: $0 {deploy|health|logs|status|stop|restart}"
-        echo "  deploy  - Full deployment (default)"
-        echo "  health  - Run health check"
-        echo "  logs    - View logs (optionally specify service)"
-        echo "  status  - Show service status"
-        echo "  stop    - Stop all services"
-        echo "  restart - Restart services (optionally specify service)"
-        exit 1
-        ;;
-esac
+# Stop services
+stop() {
+    log "Stopping services..."
+    docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" down
+    log "✅ Services stopped"
+}
+
+# Restart services
+restart() {
+    log "Restarting services..."
+    stop
+    sleep 5
+    deploy
+}
+
+# Update deployment
+update() {
+    log "Updating deployment..."
+    
+    # Pull latest code (if in git repo)
+    if [[ -d "$PROJECT_DIR/.git" ]]; then
+        log "Pulling latest code..."
+        cd "$PROJECT_DIR"
+        git pull origin main || git pull origin master
+    fi
+    
+    # Restart deployment
+    restart
+}
+
+# Backup data
+backup() {
+    log "Creating backup..."
+    
+    local backup_dir="/opt/tempmail/backups"
+    local timestamp=$(date +%Y%m%d_%H%M%S)
+    local backup_file="$backup_dir/backup_$timestamp.tar.gz"
+    
+    mkdir -p "$backup_dir"
+    
+    # Stop services temporarily
+    warn "Stopping services for backup..."
+    docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" stop
+    
+    # Create backup
+    log "Creating backup archive..."
+    tar -czf "$backup_file" -C /opt/tempmail data/ config/ .env.production
+    
+    # Restart services
+    log "Restarting services..."
+    docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" start
+    
+    log "✅ Backup created: $backup_file"
+}
+
+# Show help
+help() {
+    echo "TempMail Production Deployment Script"
+    echo ""
+    echo "Usage: $0 [COMMAND] [OPTIONS]"
+    echo ""
+    echo "Commands:"
+    echo "  deploy          Deploy the application"
+    echo "  status          Show service status"
+    echo "  logs [service]  Show logs (optionally for specific service)"
+    echo "  stop            Stop all services"
+    echo "  restart         Restart all services"
+    echo "  update          Update and restart deployment"
+    echo "  backup          Create a backup of data and config"
+    echo "  health          Check service health"
+    echo "  help            Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0 deploy                    # Deploy the application"
+    echo "  $0 logs backend              # Show backend logs"
+    echo "  $0 logs backend 50           # Show last 50 lines of backend logs"
+    echo "  $0 status                    # Show service status"
+}
+
+# Main script logic
+main() {
+    case "${1:-help}" in
+        "deploy")
+            check_user
+            check_prerequisites
+            setup_directories
+            deploy
+            ;;
+        "status")
+            status
+            ;;
+        "logs")
+            logs "$2" "$3"
+            ;;
+        "stop")
+            stop
+            ;;
+        "restart")
+            check_user
+            restart
+            ;;
+        "update")
+            check_user
+            check_prerequisites
+            update
+            ;;
+        "backup")
+            backup
+            ;;
+        "health")
+            check_health
+            ;;
+        "help"|*)
+            help
+            ;;
+    esac
+}
+
+# Run main function with all arguments
+main "$@"

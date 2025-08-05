@@ -156,7 +156,6 @@ export class MonitoringService {
         },
         {
           timezone: 'UTC',
-          scheduled: false,
         }
       );
 
