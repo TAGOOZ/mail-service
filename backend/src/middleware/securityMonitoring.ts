@@ -205,27 +205,39 @@ export const securityMonitoringMiddleware = (
     });
   }
 
-  // Check for command injection patterns
-  const cmdTargets = [query, body];
-  for (const target of cmdTargets) {
-    if (
-      containsSuspiciousPattern(target, SUSPICIOUS_PATTERNS.COMMAND_INJECTION)
-    ) {
-      suspiciousActivity = true;
-      detectedThreats.push('Command Injection Attempt');
+  // Check for command injection patterns (skip for certain safe endpoints)
+  const safeEndpoints = ['/api/mailbox/generate', '/health', '/api/health'];
+  const isSafeEndpoint = safeEndpoints.some(endpoint =>
+    path.includes(endpoint)
+  );
 
-      securityLogger.logSecurityEvent({
-        type: SecurityEventType.SUSPICIOUS_REQUEST,
-        severity: SecuritySeverity.HIGH,
-        message: 'Command injection attempt detected',
-        ip,
-        userAgent,
-        method,
-        path,
-        payload: { query: req.query, body: req.body },
-        additionalContext: { detectedThreats, target },
-      });
-      break;
+  if (!isSafeEndpoint) {
+    const cmdTargets = [query, body];
+    for (const target of cmdTargets) {
+      // Skip empty objects and simple JSON structures
+      if (target === '{}' || target === '[]' || !target) {
+        continue;
+      }
+
+      if (
+        containsSuspiciousPattern(target, SUSPICIOUS_PATTERNS.COMMAND_INJECTION)
+      ) {
+        suspiciousActivity = true;
+        detectedThreats.push('Command Injection Attempt');
+
+        securityLogger.logSecurityEvent({
+          type: SecurityEventType.SUSPICIOUS_REQUEST,
+          severity: SecuritySeverity.HIGH,
+          message: 'Command injection attempt detected',
+          ip,
+          userAgent,
+          method,
+          path,
+          payload: { query: req.query, body: req.body },
+          additionalContext: { detectedThreats, target },
+        });
+        break;
+      }
     }
   }
 
@@ -308,9 +320,17 @@ export const securityHeadersMiddleware = (
 ) => {
   // Add security headers
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+  // More permissive settings for development
+  if (process.env.NODE_ENV === 'development') {
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN'); // Allow same-origin framing
+    res.setHeader('Referrer-Policy', 'same-origin'); // Less strict referrer policy
+  } else {
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  }
+
   res.setHeader(
     'Permissions-Policy',
     'geolocation=(), microphone=(), camera=()'

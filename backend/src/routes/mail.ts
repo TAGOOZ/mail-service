@@ -3,20 +3,8 @@ import { authMiddleware } from '../middleware/auth';
 import { MailboxService } from '../services/mailboxService';
 import { Mail } from '../models/Mail';
 import { logger } from '../utils/logger';
-import {
-  optimizeMailQuery,
-  optimizeMailResponse,
-  createCacheMiddleware,
-  apiOptimizer,
-} from '../utils/apiOptimizer';
-import {
-  GetMailsRequest,
-  GetMailsResponse,
-  GetMailResponse,
-  DeleteMailResponse,
-  ClearMailboxResponse,
-  ErrorType,
-} from '@nnu/shared';
+import { createCacheMiddleware } from '../utils/apiOptimizer';
+import { ErrorType } from '@nnu/shared';
 
 const router = Router();
 
@@ -27,15 +15,16 @@ const router = Router();
 router.get(
   '/:mailboxId',
   authMiddleware,
-  createCacheMiddleware({ ttl: 30, maxSize: 100 }), // Cache for 30 seconds
+  createCacheMiddleware({ ttl: 30, maxSize: 100 }),
   async (req: Request, res: Response) => {
     try {
       const { mailboxId } = req.params;
-      const { page = 1, limit = 20 } = req.query as Partial<GetMailsRequest>;
+      const { page = 1, limit = 20 } = req.query;
 
       // 验证用户访问权限
       if (req.user?.mailboxId !== mailboxId) {
         return res.status(403).json({
+          success: false,
           error: {
             type: ErrorType.AUTHENTICATION_ERROR,
             message: 'Access denied to this mailbox',
@@ -52,6 +41,7 @@ router.get(
 
       if (!hasAccess) {
         return res.status(404).json({
+          success: false,
           error: {
             type: ErrorType.MAILBOX_NOT_FOUND,
             message: 'Mailbox not found or expired',
@@ -72,7 +62,7 @@ router.get(
       // 计算分页信息
       const hasMore = Number(page) * Number(limit) < total;
 
-      const response: GetMailsResponse = {
+      const response = {
         mails: mails.map(mail => ({
           id: mail.id,
           mailboxId: mail.mailboxId,
@@ -88,8 +78,6 @@ router.get(
         })),
         total,
         hasMore,
-        page: Number(page),
-        limit: Number(limit),
       };
 
       logger.info(`Retrieved ${mails.length} mails for mailbox ${mailboxId}`, {
@@ -99,10 +87,14 @@ router.get(
         total,
       });
 
-      res.json(response);
+      res.json({
+        success: true,
+        data: response,
+      });
     } catch (error) {
       logger.error('Failed to get mails:', error);
       res.status(500).json({
+        success: false,
         error: {
           type: ErrorType.SERVER_ERROR,
           message: 'Failed to retrieve mails',
@@ -127,6 +119,7 @@ router.get(
       // 验证用户访问权限
       if (req.user?.mailboxId !== mailboxId) {
         return res.status(403).json({
+          success: false,
           error: {
             type: ErrorType.AUTHENTICATION_ERROR,
             message: 'Access denied to this mailbox',
@@ -143,6 +136,7 @@ router.get(
 
       if (!hasAccess) {
         return res.status(404).json({
+          success: false,
           error: {
             type: ErrorType.MAILBOX_NOT_FOUND,
             message: 'Mailbox not found or expired',
@@ -156,6 +150,7 @@ router.get(
 
       if (!mail) {
         return res.status(404).json({
+          success: false,
           error: {
             type: ErrorType.MAIL_NOT_FOUND,
             message: 'Mail not found',
@@ -170,20 +165,18 @@ router.get(
         await mail.save();
       }
 
-      const response: GetMailResponse = {
-        mail: {
-          id: mail.id,
-          mailboxId: mail.mailboxId,
-          from: mail.from,
-          to: mail.to,
-          subject: mail.subject,
-          textContent: mail.textContent,
-          htmlContent: mail.htmlContent,
-          attachments: mail.attachments,
-          receivedAt: mail.receivedAt,
-          isRead: mail.isRead,
-          size: mail.size,
-        },
+      const response = {
+        id: mail.id,
+        mailboxId: mail.mailboxId,
+        from: mail.from,
+        to: mail.to,
+        subject: mail.subject,
+        textContent: mail.textContent,
+        htmlContent: mail.htmlContent,
+        attachments: mail.attachments,
+        receivedAt: mail.receivedAt,
+        isRead: mail.isRead,
+        size: mail.size,
       };
 
       logger.info(`Retrieved mail details for ${mailId}`, {
@@ -193,10 +186,14 @@ router.get(
         subject: mail.subject,
       });
 
-      res.json(response);
+      res.json({
+        success: true,
+        data: response,
+      });
     } catch (error) {
       logger.error('Failed to get mail details:', error);
       res.status(500).json({
+        success: false,
         error: {
           type: ErrorType.SERVER_ERROR,
           message: 'Failed to retrieve mail details',
@@ -221,6 +218,7 @@ router.delete(
       // 验证用户访问权限
       if (req.user?.mailboxId !== mailboxId) {
         return res.status(403).json({
+          success: false,
           error: {
             type: ErrorType.AUTHENTICATION_ERROR,
             message: 'Access denied to this mailbox',
@@ -237,6 +235,7 @@ router.delete(
 
       if (!hasAccess) {
         return res.status(404).json({
+          success: false,
           error: {
             type: ErrorType.MAILBOX_NOT_FOUND,
             message: 'Mailbox not found or expired',
@@ -250,6 +249,7 @@ router.delete(
 
       if (!mailToDelete) {
         return res.status(404).json({
+          success: false,
           error: {
             type: ErrorType.MAIL_NOT_FOUND,
             message: 'Mail not found',
@@ -261,11 +261,6 @@ router.delete(
       // 删除邮件
       await Mail.findOneAndDelete({ _id: mailId, mailboxId });
 
-      const response: DeleteMailResponse = {
-        success: true,
-        message: 'Mail deleted successfully',
-      };
-
       logger.info(`Deleted mail ${mailId} from mailbox ${mailboxId}`, {
         mailboxId,
         mailId,
@@ -273,10 +268,14 @@ router.delete(
         subject: mailToDelete.subject,
       });
 
-      res.json(response);
+      res.json({
+        success: true,
+        data: null,
+      });
     } catch (error) {
       logger.error('Failed to delete mail:', error);
       res.status(500).json({
+        success: false,
         error: {
           type: ErrorType.SERVER_ERROR,
           message: 'Failed to delete mail',
@@ -301,6 +300,7 @@ router.delete(
       // 验证用户访问权限
       if (req.user?.mailboxId !== mailboxId) {
         return res.status(403).json({
+          success: false,
           error: {
             type: ErrorType.AUTHENTICATION_ERROR,
             message: 'Access denied to this mailbox',
@@ -317,6 +317,7 @@ router.delete(
 
       if (!hasAccess) {
         return res.status(404).json({
+          success: false,
           error: {
             type: ErrorType.MAILBOX_NOT_FOUND,
             message: 'Mailbox not found or expired',
@@ -328,21 +329,22 @@ router.delete(
       // 删除所有邮件
       const result = await Mail.deleteMany({ mailboxId });
 
-      const response: ClearMailboxResponse = {
-        success: true,
-        deletedCount: result.deletedCount || 0,
-        message: `Successfully deleted ${result.deletedCount || 0} mails`,
-      };
-
       logger.info(`Cleared mailbox ${mailboxId}`, {
         mailboxId,
         deletedCount: result.deletedCount,
       });
 
-      res.json(response);
+      res.json({
+        success: true,
+        data: {
+          deletedCount: result.deletedCount || 0,
+          message: `Successfully deleted ${result.deletedCount || 0} mails`,
+        },
+      });
     } catch (error) {
       logger.error('Failed to clear mailbox:', error);
       res.status(500).json({
+        success: false,
         error: {
           type: ErrorType.SERVER_ERROR,
           message: 'Failed to clear mailbox',
@@ -368,6 +370,7 @@ router.patch(
       // 验证请求体
       if (typeof isRead !== 'boolean') {
         return res.status(400).json({
+          success: false,
           error: {
             type: ErrorType.VALIDATION_ERROR,
             message: 'isRead must be a boolean value',
@@ -379,6 +382,7 @@ router.patch(
       // 验证用户访问权限
       if (req.user?.mailboxId !== mailboxId) {
         return res.status(403).json({
+          success: false,
           error: {
             type: ErrorType.AUTHENTICATION_ERROR,
             message: 'Access denied to this mailbox',
@@ -395,6 +399,7 @@ router.patch(
 
       if (!hasAccess) {
         return res.status(404).json({
+          success: false,
           error: {
             type: ErrorType.MAILBOX_NOT_FOUND,
             message: 'Mailbox not found or expired',
@@ -408,6 +413,7 @@ router.patch(
 
       if (!mail) {
         return res.status(404).json({
+          success: false,
           error: {
             type: ErrorType.MAIL_NOT_FOUND,
             message: 'Mail not found',
@@ -429,15 +435,16 @@ router.patch(
 
       res.json({
         success: true,
-        message: `Mail marked as ${isRead ? 'read' : 'unread'}`,
-        mail: {
+        data: {
           id: mail.id,
           isRead: mail.isRead,
+          message: `Mail marked as ${isRead ? 'read' : 'unread'}`,
         },
       });
     } catch (error) {
       logger.error('Failed to update mail read status:', error);
       res.status(500).json({
+        success: false,
         error: {
           type: ErrorType.SERVER_ERROR,
           message: 'Failed to update mail read status',
@@ -462,6 +469,7 @@ router.patch(
       // 验证用户访问权限
       if (req.user?.mailboxId !== mailboxId) {
         return res.status(403).json({
+          success: false,
           error: {
             type: ErrorType.AUTHENTICATION_ERROR,
             message: 'Access denied to this mailbox',
@@ -478,6 +486,7 @@ router.patch(
 
       if (!hasAccess) {
         return res.status(404).json({
+          success: false,
           error: {
             type: ErrorType.MAILBOX_NOT_FOUND,
             message: 'Mailbox not found or expired',
@@ -499,12 +508,15 @@ router.patch(
 
       res.json({
         success: true,
-        message: `Marked ${result.modifiedCount} mails as read`,
-        updatedCount: result.modifiedCount,
+        data: {
+          updatedCount: result.modifiedCount,
+          message: `Marked ${result.modifiedCount} mails as read`,
+        },
       });
     } catch (error) {
       logger.error('Failed to mark all mails as read:', error);
       res.status(500).json({
+        success: false,
         error: {
           type: ErrorType.SERVER_ERROR,
           message: 'Failed to mark all mails as read',

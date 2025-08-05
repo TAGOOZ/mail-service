@@ -18,7 +18,7 @@ interface OptimizationReport {
   actions: string[];
 }
 
-class PerformanceOptimizer {
+export class PerformanceOptimizer {
   private report: OptimizationReport;
 
   constructor() {
@@ -314,4 +314,4 @@ if (require.main === module) {
   main();
 }
 
-export { PerformanceOptimizer, DatabaseOptimizer, MemoryOptimizer };
+// Classes are already exported above

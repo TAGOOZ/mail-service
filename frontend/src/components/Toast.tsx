@@ -57,15 +57,6 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onClose }) => {
           titleColor: 'text-green-800',
           messageColor: 'text-green-700',
         };
-      case 'error':
-        return {
-          icon: <AlertCircle className="h-5 w-5" />,
-          bgColor: 'bg-red-50',
-          borderColor: 'border-red-200',
-          iconColor: 'text-red-600',
-          titleColor: 'text-red-800',
-          messageColor: 'text-red-700',
-        };
       case 'warning':
         return {
           icon: <AlertTriangle className="h-5 w-5" />,
@@ -83,6 +74,16 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onClose }) => {
           iconColor: 'text-blue-600',
           titleColor: 'text-blue-800',
           messageColor: 'text-blue-700',
+        };
+      case 'error':
+      default:
+        return {
+          icon: <AlertCircle className="h-5 w-5" />,
+          bgColor: 'bg-red-50',
+          borderColor: 'border-red-200',
+          iconColor: 'text-red-600',
+          titleColor: 'text-red-800',
+          messageColor: 'text-red-700',
         };
     }
   };

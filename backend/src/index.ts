@@ -38,29 +38,36 @@ const app = express();
 const httpServer = createServer(app);
 const PORT = process.env.PORT || 3001;
 
-// Security middleware
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrc: ["'self'"],
-        imgSrc: ["'self'", 'data:', 'https:'],
-        objectSrc: ["'none'"],
-        frameAncestors: ["'none'"],
-        baseUri: ["'self'"],
-        formAction: ["'self'"],
-      },
-    },
-    crossOriginEmbedderPolicy: false, // Allow embedding for email content
-    hsts: {
-      maxAge: 31536000,
-      includeSubDomains: true,
-      preload: true,
-    },
-  })
-);
+// Security middleware - more permissive for development
+const helmetConfig =
+  process.env.NODE_ENV === 'development'
+    ? {
+        contentSecurityPolicy: false, // Disable CSP in development
+        crossOriginEmbedderPolicy: false,
+        hsts: false, // Disable HSTS in development
+      }
+    : {
+        contentSecurityPolicy: {
+          directives: {
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrc: ["'self'"],
+            imgSrc: ["'self'", 'data:', 'https:'],
+            objectSrc: ["'none'"],
+            frameAncestors: ["'none'"],
+            baseUri: ["'self'"],
+            formAction: ["'self'"],
+          },
+        },
+        crossOriginEmbedderPolicy: false,
+        hsts: {
+          maxAge: 31536000,
+          includeSubDomains: true,
+          preload: true,
+        },
+      };
+
+app.use(helmet(helmetConfig));
 
 // Additional security headers
 app.use(securityHeadersMiddleware);
@@ -71,15 +78,83 @@ app.use(securityMonitoringMiddleware);
 // Performance monitoring middleware
 app.use(performanceMiddleware);
 
-// CORS configuration
-app.use(
-  cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  })
-);
+// CORS configuration from environment variables
+const getCorsOptions = () => {
+  // Parse allowed origins from environment
+  const primaryOrigin =
+    process.env.CORS_ORIGIN ||
+    process.env.FRONTEND_URL ||
+    'http://localhost:3000';
+  const additionalOrigins = process.env.CORS_ADDITIONAL_ORIGINS
+    ? process.env.CORS_ADDITIONAL_ORIGINS.split(',').map(origin =>
+        origin.trim()
+      )
+    : [];
+
+  const allowedOrigins = [primaryOrigin, ...additionalOrigins];
+
+  // Parse other CORS settings
+  const credentials = process.env.CORS_CREDENTIALS === 'true';
+  const methods = process.env.CORS_METHODS
+    ? process.env.CORS_METHODS.split(',').map(method => method.trim())
+    : ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'];
+  const allowedHeaders = process.env.CORS_ALLOWED_HEADERS
+    ? process.env.CORS_ALLOWED_HEADERS.split(',').map(header => header.trim())
+    : [
+        'Content-Type',
+        'Authorization',
+        'X-Requested-With',
+        'Accept',
+        'Origin',
+        'X-CSRF-Token',
+      ];
+  const exposedHeaders = process.env.CORS_EXPOSED_HEADERS
+    ? process.env.CORS_EXPOSED_HEADERS.split(',').map(header => header.trim())
+    : ['X-CSRF-Token'];
+
+  return {
+    origin: function (origin: string | undefined, callback: Function) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+
+      // In development, be more permissive with localhost
+      if (process.env.NODE_ENV === 'development') {
+        if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+          return callback(null, true);
+        }
+      }
+
+      // Check against configured allowed origins
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        logger.warn('CORS: Origin not allowed', { origin, allowedOrigins });
+        callback(new Error(`Origin ${origin} not allowed by CORS policy`));
+      }
+    },
+    credentials,
+    methods,
+    allowedHeaders,
+    exposedHeaders,
+    optionsSuccessStatus: 200, // Some legacy browsers choke on 204
+  };
+};
+
+const corsOptions = getCorsOptions();
+
+// Log CORS configuration in development
+if (process.env.NODE_ENV === 'development') {
+  logger.info('CORS configuration loaded', {
+    primaryOrigin: process.env.CORS_ORIGIN || process.env.FRONTEND_URL,
+    additionalOrigins: process.env.CORS_ADDITIONAL_ORIGINS,
+    credentials: corsOptions.credentials,
+    methods: corsOptions.methods,
+    allowedHeaders: corsOptions.allowedHeaders,
+    exposedHeaders: corsOptions.exposedHeaders,
+  });
+}
+
+app.use(cors(corsOptions));
 
 // Rate limiting with enhanced security
 app.use('/api', rateLimiters.general);
@@ -444,8 +519,10 @@ app.get('/api/admin/monitoring/history', authMiddleware, async (req, res) => {
 
 // API routes
 import mailRoutes from './routes/mail';
+import mailboxRoutes from './routes/mailbox';
 import performanceRoutes from './routes/performance';
 app.use('/api/mail', mailRoutes);
+app.use('/api/mailbox', mailboxRoutes);
 app.use('/api/performance', performanceRoutes);
 
 // Error handling middleware (must be last)
