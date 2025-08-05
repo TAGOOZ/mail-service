@@ -1,6 +1,9 @@
 # TempMail 生产环境部署指南
 
-本指南介绍如何使用集成了完整邮件服务的生产环境配置部署 TempMail。
+本指南介绍如何部署 TempMail 临时邮箱服务到生产环境，包含完整的邮件服务配置。
+
+> **访问地址**: <https://mail.nnu.edu.kg>  
+> **服务器IP**: 148.135.73.118
 
 ## 🏗️ 架构概述
 
@@ -139,7 +142,7 @@ REACT_APP_MAIL_DOMAIN=your-domain.com
 
 配置以下 DNS 记录：
 
-```
+```dns
 # A 记录
 mail.your-domain.com    IN  A     YOUR_SERVER_IP
 

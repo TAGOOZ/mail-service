@@ -31,8 +31,8 @@ import { mailReceivingService } from './services/mailReceivingService';
 import { webSocketService } from './services/websocketService';
 import { mailWebSocketIntegration } from './services/mailWebSocketIntegration';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables from root directory
+dotenv.config({ path: '../.env' });
 
 const app = express();
 const httpServer = createServer(app);

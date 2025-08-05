@@ -7,8 +7,8 @@ import { Mail } from '../models/Mail';
 import { SessionManager } from '../models/Session';
 import { logger } from '../utils/logger';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables from root directory
+dotenv.config({ path: '../../.env' });
 
 async function testDatabaseConnections() {
   try {

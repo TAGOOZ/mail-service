@@ -1,6 +1,8 @@
-# Temporary Email Website
+# TempMail - 临时邮箱服务
 
-A temporary email service using the nnu.edu.kg domain that allows users to generate temporary email addresses for receiving verification emails and other temporary communications.
+基于 `nnu.edu.kg` 域名的临时邮箱服务，用户可以快速生成临时邮箱地址用于接收验证邮件和临时通信。
+
+**🌐 访问地址**: https://mail.nnu.edu.kg
 
 ## Features
 
@@ -42,11 +44,21 @@ A temporary email service using the nnu.edu.kg domain that allows users to gener
 ### Development
 
 1. Clone the repository
-2. Copy environment variables:
+2. Set up environment variables:
+
+   **方法一：使用设置脚本（推荐）**
+
+   ```bash
+   ./scripts/setup-env.sh
+   ```
+
+   **方法二：手动复制**
 
    ```bash
    cp .env.example .env
    ```
+
+   **注意**: 现在所有环境变量都统一在根目录的 `.env` 文件中管理，包括 backend 和 frontend 的配置。
 
 3. Start development services:
 
@@ -74,41 +86,24 @@ The application will be available at:
 
 ### Production
 
-**访问地址**: https://mail.nnu.edu.kg
+**访问地址**: <https://mail.nnu.edu.kg>
 
-详细部署说明请参考 [部署文档](docs/DEPLOYMENT.md)
-
-快速部署：
-
-1. 配置环境变量：
-
-   ```bash
-   cp .env.example .env
-   # 编辑 .env 文件，修改生产环境配置
-   ```
-
-2. 启动所有服务：
-
-   ```bash
-   docker-compose up -d
-   ```
-
-3. 验证部署：
-
-   ```bash
-   curl -I https://mail.nnu.edu.kg
-   ```
+详细部署说明请参考 [生产环境部署指南](docs/PRODUCTION_DEPLOYMENT.md)
 
 ## Project Structure
 
 ```txt
 temp-mail-website/
-├── frontend/          # React frontend application
-├── backend/           # Node.js backend API
-├── shared/            # Shared TypeScript types
-├── config/            # Configuration files
-├── scripts/           # Utility scripts
-└── docs/              # Documentation
+├── frontend/                    # React frontend application
+├── backend/                     # Node.js backend API
+├── shared/                      # Shared TypeScript types
+├── config/                      # Configuration files
+├── scripts/                     # Utility and deployment scripts
+├── docs/                        # 📚 All documentation
+├── docker-compose.yml           # Basic production setup
+├── docker-compose.dev.yml       # Development environment
+├── docker-compose.prod.yml      # Full production setup with mail server
+└── README.md                    # This file
 ```
 
 ## Development Workflow
@@ -121,43 +116,17 @@ temp-mail-website/
 
 ## Environment Variables
 
-See `.env.example` for all available configuration options.
+See `.env.example` for all available configuration options. For production deployment, refer to [生产环境部署指南](docs/PRODUCTION_DEPLOYMENT.md).
 
-### 生产环境关键配置
+## 📚 Documentation
 
-```bash
-# 服务器配置
-NODE_ENV=production
-CORS_ORIGIN=https://mail.nnu.edu.kg
+所有技术文档统一存放在 [`docs/`](docs/) 目录中：
 
-# 数据库配置（修改密码）
-MONGODB_URI=mongodb://admin:your-password@mongodb:27017/tempmail?authSource=admin
-
-# JWT密钥（必须修改）
-JWT_SECRET=your-super-secure-jwt-secret-key
-
-# 前端配置
-REACT_APP_API_URL=https://mail.nnu.edu.kg/api
-REACT_APP_WS_URL=https://mail.nnu.edu.kg
-```
-
-## 部署说明
-
-### 域名配置
-
-- **mail.nnu.edu.kg**: 前端服务地址
-- **nnu.edu.kg**: 邮件接收域名（MX记录）
-- **服务器IP**: 148.135.73.118
-
-### DNS配置（Cloudflare）
-
-| 类型 | 名称 | 内容           | 代理状态  |
-| ---- | ---- | -------------- | --------- |
-| A    | mail | 148.135.73.118 | 🟠 已代理 |
-| A    | @    | 148.135.73.118 | 🔘 仅DNS  |
-| MX   | @    | nnu.edu.kg     | 🔘 仅DNS  |
-
-完整部署指南请查看 [DEPLOYMENT.md](docs/DEPLOYMENT.md)
+- **[📖 文档中心](docs/README.md)** - 完整的文档索引和导航
+- **[🚀 生产环境部署](docs/PRODUCTION_DEPLOYMENT.md)** - 完整的生产环境部署指南
+- **[📊 项目概览](docs/PROJECT_OVERVIEW.md)** - 项目架构和技术栈概述
+- **[🔧 运维手册](docs/OPERATIONS_RUNBOOK.md)** - 日常运维和故障排除
+- **[💾 备份策略](docs/BACKUP_AND_CLEANUP.md)** - 数据备份和清理机制
 
 ## Contributing
 
