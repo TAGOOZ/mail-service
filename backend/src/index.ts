@@ -24,6 +24,9 @@ import { logger } from './utils/logger';
 import { securityLogger } from './utils/securityLogger';
 import { DatabaseService } from './services/database';
 import { CleanupScheduler } from './services/cleanupScheduler';
+import { BackupService } from './services/backupService';
+import { DataCleanupService } from './services/dataCleanupService';
+import { MonitoringService } from './services/monitoringService';
 import { mailReceivingService } from './services/mailReceivingService';
 import { webSocketService } from './services/websocketService';
 import { mailWebSocketIntegration } from './services/mailWebSocketIntegration';
@@ -249,6 +252,196 @@ app.get('/health/integration', async (req, res) => {
   }
 });
 
+// Admin routes for backup, cleanup, and monitoring
+app.get('/api/admin/backup/status', authMiddleware, async (req, res) => {
+  try {
+    const backupService = BackupService.getInstance();
+    const status = backupService.getStatus();
+    res.json(status);
+  } catch (error) {
+    logger.error('Failed to get backup status:', error);
+    res.status(500).json({
+      error: {
+        type: 'INTERNAL_ERROR',
+        message: 'Failed to get backup status',
+        code: 'BACKUP_STATUS_ERROR',
+      },
+    });
+  }
+});
+
+app.post('/api/admin/backup', authMiddleware, async (req, res) => {
+  try {
+    const backupService = BackupService.getInstance();
+    const result = await backupService.performBackup();
+    res.json(result);
+  } catch (error) {
+    logger.error('Manual backup failed:', error);
+    res.status(500).json({
+      error: {
+        type: 'INTERNAL_ERROR',
+        message: 'Manual backup failed',
+        code: 'BACKUP_FAILED',
+      },
+    });
+  }
+});
+
+app.get('/api/admin/backups', authMiddleware, async (req, res) => {
+  try {
+    const backupService = BackupService.getInstance();
+    const backups = await backupService.listBackups();
+    res.json({ backups });
+  } catch (error) {
+    logger.error('Failed to list backups:', error);
+    res.status(500).json({
+      error: {
+        type: 'INTERNAL_ERROR',
+        message: 'Failed to list backups',
+        code: 'BACKUP_LIST_ERROR',
+      },
+    });
+  }
+});
+
+app.get('/api/admin/cleanup/status', authMiddleware, async (req, res) => {
+  try {
+    const cleanupService = DataCleanupService.getInstance();
+    const status = cleanupService.getStatus();
+    res.json(status);
+  } catch (error) {
+    logger.error('Failed to get cleanup status:', error);
+    res.status(500).json({
+      error: {
+        type: 'INTERNAL_ERROR',
+        message: 'Failed to get cleanup status',
+        code: 'CLEANUP_STATUS_ERROR',
+      },
+    });
+  }
+});
+
+app.post('/api/admin/cleanup/:type', authMiddleware, async (req, res) => {
+  try {
+    const { type } = req.params;
+    const validTypes = [
+      'expiredMailboxes',
+      'oldMails',
+      'orphanedData',
+      'redisCleanup',
+    ];
+
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({
+        error: {
+          type: 'VALIDATION_ERROR',
+          message: 'Invalid cleanup type',
+          code: 'INVALID_CLEANUP_TYPE',
+        },
+      });
+    }
+
+    const cleanupService = DataCleanupService.getInstance();
+    const result = await cleanupService.triggerCleanup(type as any);
+    res.json(result);
+  } catch (error) {
+    logger.error('Manual cleanup failed:', error);
+    res.status(500).json({
+      error: {
+        type: 'INTERNAL_ERROR',
+        message: 'Manual cleanup failed',
+        code: 'CLEANUP_FAILED',
+      },
+    });
+  }
+});
+
+app.get('/api/admin/cleanup/stats', authMiddleware, async (req, res) => {
+  try {
+    const cleanupService = DataCleanupService.getInstance();
+    const stats = await cleanupService.getCleanupStats();
+    res.json(stats);
+  } catch (error) {
+    logger.error('Failed to get cleanup stats:', error);
+    res.status(500).json({
+      error: {
+        type: 'INTERNAL_ERROR',
+        message: 'Failed to get cleanup stats',
+        code: 'CLEANUP_STATS_ERROR',
+      },
+    });
+  }
+});
+
+app.get('/api/admin/monitoring/status', authMiddleware, async (req, res) => {
+  try {
+    const monitoringService = MonitoringService.getInstance();
+    const status = monitoringService.getStatus();
+    res.json(status);
+  } catch (error) {
+    logger.error('Failed to get monitoring status:', error);
+    res.status(500).json({
+      error: {
+        type: 'INTERNAL_ERROR',
+        message: 'Failed to get monitoring status',
+        code: 'MONITORING_STATUS_ERROR',
+      },
+    });
+  }
+});
+
+app.get('/api/admin/monitoring/metrics', authMiddleware, async (req, res) => {
+  try {
+    const monitoringService = MonitoringService.getInstance();
+    const metrics = monitoringService.getCurrentMetrics();
+    res.json(metrics);
+  } catch (error) {
+    logger.error('Failed to get monitoring metrics:', error);
+    res.status(500).json({
+      error: {
+        type: 'INTERNAL_ERROR',
+        message: 'Failed to get monitoring metrics',
+        code: 'MONITORING_METRICS_ERROR',
+      },
+    });
+  }
+});
+
+app.get('/api/admin/monitoring/alerts', authMiddleware, async (req, res) => {
+  try {
+    const monitoringService = MonitoringService.getInstance();
+    const alerts = monitoringService.getActiveAlerts();
+    res.json({ alerts });
+  } catch (error) {
+    logger.error('Failed to get monitoring alerts:', error);
+    res.status(500).json({
+      error: {
+        type: 'INTERNAL_ERROR',
+        message: 'Failed to get monitoring alerts',
+        code: 'MONITORING_ALERTS_ERROR',
+      },
+    });
+  }
+});
+
+app.get('/api/admin/monitoring/history', authMiddleware, async (req, res) => {
+  try {
+    const hours = parseInt(req.query.hours as string) || 1;
+    const monitoringService = MonitoringService.getInstance();
+    const history = monitoringService.getMetricsHistory(hours);
+    res.json({ history });
+  } catch (error) {
+    logger.error('Failed to get monitoring history:', error);
+    res.status(500).json({
+      error: {
+        type: 'INTERNAL_ERROR',
+        message: 'Failed to get monitoring history',
+        code: 'MONITORING_HISTORY_ERROR',
+      },
+    });
+  }
+});
+
 // API routes
 import mailRoutes from './routes/mail';
 import performanceRoutes from './routes/performance';
@@ -328,8 +521,20 @@ async function startServer() {
     // Initialize database connections
     await DatabaseService.initialize();
 
-    // Start cleanup scheduler
+    // Start cleanup scheduler (legacy - will be replaced by DataCleanupService)
     CleanupScheduler.start();
+
+    // Start enhanced data cleanup service
+    const dataCleanupService = DataCleanupService.getInstance();
+    await dataCleanupService.start();
+
+    // Start backup service
+    const backupService = BackupService.getInstance();
+    await backupService.start();
+
+    // Start monitoring service
+    const monitoringService = MonitoringService.getInstance();
+    await monitoringService.start();
 
     // Start mail receiving service
     await mailReceivingService.start();
@@ -360,7 +565,19 @@ async function startServer() {
             // Stop mail-WebSocket integration
             await mailWebSocketIntegration.shutdown();
 
-            // Stop cleanup scheduler
+            // Stop monitoring service
+            const monitoringService = MonitoringService.getInstance();
+            monitoringService.stop();
+
+            // Stop backup service
+            const backupService = BackupService.getInstance();
+            backupService.stop();
+
+            // Stop data cleanup service
+            const dataCleanupService = DataCleanupService.getInstance();
+            dataCleanupService.stop();
+
+            // Stop legacy cleanup scheduler
             CleanupScheduler.stop();
 
             // Stop mail receiving service

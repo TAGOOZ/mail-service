@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Backup script for TempMail production data
-# This script creates backups of MongoDB and Redis data
+# Enhanced Backup script for TempMail production data
+# This script integrates with the BackupService API and provides fallback shell-based backup
 
 set -e
 
@@ -230,6 +230,39 @@ Please check the logs for details."
     fi
 }
 
+# Function to trigger API-based backup
+api_backup() {
+    print_status "Attempting API-based backup..."
+    
+    local api_url="${API_BASE_URL:-http://localhost:3001}/api/admin/backup"
+    local admin_token="${ADMIN_TOKEN:-}"
+    
+    if [ -z "$admin_token" ]; then
+        print_warning "No admin token provided, falling back to shell-based backup"
+        return 1
+    fi
+    
+    local response=$(curl -s -w "%{http_code}" -X POST "$api_url" \
+        -H "Authorization: Bearer $admin_token" \
+        -H "Content-Type: application/json" \
+        -o /tmp/backup_response.json)
+    
+    local http_code="${response: -3}"
+    
+    if [ "$http_code" = "200" ]; then
+        local backup_info=$(cat /tmp/backup_response.json)
+        print_success "API backup completed successfully"
+        echo "$backup_info" | jq '.' 2>/dev/null || echo "$backup_info"
+        rm -f /tmp/backup_response.json
+        return 0
+    else
+        print_error "API backup failed with HTTP code: $http_code"
+        cat /tmp/backup_response.json 2>/dev/null || echo "No response body"
+        rm -f /tmp/backup_response.json
+        return 1
+    fi
+}
+
 # Main backup function
 main() {
     echo "=================================="
@@ -237,6 +270,14 @@ main() {
     echo "=================================="
     echo "Starting backup at $(date)"
     echo
+    
+    # Try API-based backup first
+    if api_backup; then
+        print_success "Backup completed via API"
+        return 0
+    fi
+    
+    print_status "Falling back to shell-based backup"
     
     # Create backup directory
     local backup_path=$(create_backup_dir)
