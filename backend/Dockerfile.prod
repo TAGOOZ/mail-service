@@ -1,0 +1,77 @@
+# Multi-stage production Dockerfile for backend
+FROM node:18-alpine AS base
+
+# Install security updates and required packages
+RUN apk update && apk upgrade && \
+    apk add --no-cache dumb-init curl && \
+    rm -rf /var/cache/apk/*
+
+# Create app directory and user
+WORKDIR /app
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+# Dependencies stage
+FROM base AS deps
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY shared/package*.json ./shared/
+COPY backend/package*.json ./backend/
+
+# Install production dependencies only
+RUN npm ci --only=production --no-audit --no-fund && \
+    npm cache clean --force
+
+# Build stage
+FROM base AS builder
+WORKDIR /app
+
+# Copy package files and install all dependencies
+COPY package*.json ./
+COPY shared/package*.json ./shared/
+COPY backend/package*.json ./backend/
+RUN npm ci --no-audit --no-fund
+
+# Copy source code
+COPY shared/ ./shared/
+COPY backend/ ./backend/
+COPY tsconfig.json ./
+
+# Build shared types first
+RUN cd shared && npm run build
+
+# Build backend
+RUN cd backend && npm run build
+
+# Production runtime stage
+FROM base AS runtime
+WORKDIR /app
+
+# Set production environment
+ENV NODE_ENV=production
+ENV NODE_OPTIONS="--max-old-space-size=512"
+
+# Copy built application and dependencies
+COPY --from=builder --chown=nodejs:nodejs /app/backend/dist ./
+COPY --from=builder --chown=nodejs:nodejs /app/shared/dist ./shared/
+COPY --from=deps --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=deps --chown=nodejs:nodejs /app/backend/node_modules ./backend/node_modules
+
+# Create logs directory
+RUN mkdir -p logs && chown nodejs:nodejs logs
+
+# Switch to non-root user
+USER nodejs
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:3001/api/health || exit 1
+
+# Expose port
+EXPOSE 3001
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "index.js"]

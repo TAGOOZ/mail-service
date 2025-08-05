@@ -1,0 +1,34 @@
+[Unit]
+Description=TempMail Production Service
+Requires=docker.service
+After=docker.service
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/tempmail
+ExecStart=/usr/local/bin/docker-compose -f docker-compose.prod.yml --env-file .env.production up -d
+ExecStop=/usr/local/bin/docker-compose -f docker-compose.prod.yml --env-file .env.production down
+ExecReload=/usr/local/bin/docker-compose -f docker-compose.prod.yml --env-file .env.production restart
+TimeoutStartSec=300
+TimeoutStopSec=120
+
+# Restart policy
+Restart=on-failure
+RestartSec=30
+
+# Security settings
+User=tempmail
+Group=tempmail
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/tempmail
+
+# Environment
+Environment=COMPOSE_PROJECT_NAME=tempmail-prod
+
+[Install]
+WantedBy=multi-user.target
