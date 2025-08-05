@@ -4,6 +4,12 @@ import { MailboxService } from '../services/mailboxService';
 import { Mail } from '../models/Mail';
 import { logger } from '../utils/logger';
 import {
+  optimizeMailQuery,
+  optimizeMailResponse,
+  createCacheMiddleware,
+  apiOptimizer,
+} from '../utils/apiOptimizer';
+import {
   GetMailsRequest,
   GetMailsResponse,
   GetMailResponse,
@@ -21,6 +27,7 @@ const router = Router();
 router.get(
   '/:mailboxId',
   authMiddleware,
+  createCacheMiddleware({ ttl: 30, maxSize: 100 }), // Cache for 30 seconds
   async (req: Request, res: Response) => {
     try {
       const { mailboxId } = req.params;

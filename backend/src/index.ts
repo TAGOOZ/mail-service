@@ -19,6 +19,7 @@ import {
   securityHeadersMiddleware,
   getSecurityStats,
 } from './middleware/securityMonitoring';
+import { performanceMiddleware } from './utils/performanceMonitor';
 import { logger } from './utils/logger';
 import { securityLogger } from './utils/securityLogger';
 import { DatabaseService } from './services/database';
@@ -63,6 +64,9 @@ app.use(securityHeadersMiddleware);
 
 // Security monitoring middleware (before other middleware)
 app.use(securityMonitoringMiddleware);
+
+// Performance monitoring middleware
+app.use(performanceMiddleware);
 
 // CORS configuration
 app.use(
@@ -247,7 +251,9 @@ app.get('/health/integration', async (req, res) => {
 
 // API routes
 import mailRoutes from './routes/mail';
+import performanceRoutes from './routes/performance';
 app.use('/api/mail', mailRoutes);
+app.use('/api/performance', performanceRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
