@@ -100,10 +100,7 @@ export function useAuth(): UseAuthReturn {
       updateAuthState();
       startUpdateTimer();
 
-      showToast({
-        type: 'success',
-        message: '邮箱会话已建立',
-      });
+      showToast('success', '会话建立', '邮箱会话已建立');
     },
     [updateAuthState, startUpdateTimer, showToast]
   );
@@ -124,10 +121,7 @@ export function useAuth(): UseAuthReturn {
       isRefreshing: false,
     });
 
-    showToast({
-      type: 'info',
-      message: '会话已结束',
-    });
+    showToast('info', '会话结束', '会话已结束');
 
     // 导航到首页
     navigate('/');
@@ -147,17 +141,11 @@ export function useAuth(): UseAuthReturn {
       await authService.refreshToken();
       updateAuthState();
 
-      showToast({
-        type: 'success',
-        message: '会话已自动续期',
-      });
+      showToast('success', '会话续期', '会话已自动续期');
     } catch (error) {
       console.error('Token refresh failed:', error);
 
-      showToast({
-        type: 'error',
-        message: '会话续期失败，请重新生成邮箱',
-      });
+      showToast('error', '续期失败', '会话续期失败，请重新生成邮箱');
 
       // 刷新失败，执行登出
       logout();
@@ -184,10 +172,7 @@ export function useAuth(): UseAuthReturn {
    * 处理token过期事件
    */
   const handleTokenExpired = useCallback(() => {
-    showToast({
-      type: 'warning',
-      message: '会话已过期，请重新生成邮箱',
-    });
+    showToast('warning', '会话过期', '会话已过期，请重新生成邮箱');
     logout();
   }, [showToast, logout]);
 

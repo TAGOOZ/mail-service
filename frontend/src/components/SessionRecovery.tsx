@@ -52,10 +52,7 @@ export const SessionRecovery: React.FC<SessionRecoveryProps> = ({ children }) =>
       login(mailbox.token, mailbox.id);
       dispatch({ type: 'SET_MAILBOX', payload: mailbox });
 
-      showToast({
-        type: 'success',
-        message: '会话已恢复',
-      });
+      showToast('success', '会话恢复', '会话已恢复');
 
     } catch (error) {
       console.warn('Session recovery failed:', error);

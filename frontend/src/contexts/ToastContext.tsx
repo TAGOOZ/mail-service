@@ -47,8 +47,19 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
       };
     }
   ) => {
+    // Get appropriate default title based on type
+    const getDefaultTitle = (toastType: ToastType): string => {
+      switch (toastType) {
+        case 'success': return '操作成功';
+        case 'error': return '操作失败';
+        case 'warning': return '警告';
+        case 'info': return '提示';
+        default: return '通知';
+      }
+    };
+
     // Ensure we don't show toasts with empty titles
-    const cleanTitle = (title && title.trim()) || '通知';
+    const cleanTitle = (title && title.trim()) || getDefaultTitle(type);
     const cleanMessage = message && message.trim() ? message : undefined;
 
     const id = generateId();

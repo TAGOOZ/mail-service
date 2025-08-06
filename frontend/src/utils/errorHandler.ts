@@ -230,6 +230,22 @@ export const handleErrorWithToast = (
 ) => {
   const errorInfo = getErrorInfo(error, retryCallback);
 
+  // Debug logging in development
+  if (process.env.NODE_ENV === 'development') {
+    if (!errorInfo.title || !errorInfo.title.trim()) {
+      console.warn('handleErrorWithToast: Empty title detected', {
+        error,
+        errorInfo,
+      });
+    }
+    if (!errorInfo.message || !errorInfo.message.trim()) {
+      console.warn('handleErrorWithToast: Empty message detected', {
+        error,
+        errorInfo,
+      });
+    }
+  }
+
   showToast(
     errorInfo.type,
     errorInfo.title,

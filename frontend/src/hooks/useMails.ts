@@ -94,7 +94,7 @@ export const useMails = () => {
         throw error;
       }
     },
-    [dispatch, state.mails]
+    [dispatch] // 移除 state.mails 依赖，避免不必要的函数重新创建
   );
 
   // Delete a mail

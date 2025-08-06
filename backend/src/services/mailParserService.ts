@@ -210,7 +210,12 @@ export class MailParserService {
    */
   static isOurDomain(email: string): boolean {
     const domain = email.split('@')[1];
-    return domain === 'nnu.edu.kg';
+    const allowedDomains = [
+      process.env.MAIL_DOMAIN || 'nnu.edu.kg',
+      '127.0.0.1', // 开发环境
+      'localhost', // 开发环境
+    ];
+    return allowedDomains.includes(domain);
   }
 
   /**

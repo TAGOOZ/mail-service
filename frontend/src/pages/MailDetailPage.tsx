@@ -9,7 +9,7 @@ const MailDetailPage: React.FC = () => {
   const { mailboxId, mailId } = useParams<{ mailboxId: string; mailId: string }>();
   const navigate = useNavigate();
   const { getMail, markAsRead } = useMails();
-  
+
   const [mail, setMail] = useState<MailType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

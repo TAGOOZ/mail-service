@@ -51,7 +51,7 @@ export const useErrorHandler = () => {
           });
 
           if (options?.successMessage) {
-            showToast('success', options.successMessage);
+            showToast('success', '操作成功', options.successMessage);
           }
 
           return result;

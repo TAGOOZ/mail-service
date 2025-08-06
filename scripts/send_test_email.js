@@ -9,9 +9,9 @@ const nodemailer = require('nodemailer');
 // 创建 SMTP 传输器（使用 MailHog）
 const transporter = nodemailer.createTransporter({
   host: 'localhost',
-  port: 1025,
-  secure: false, // MailHog 不使用 SSL
-  auth: false, // MailHog 不需要认证
+  port: 2525,
+  secure: false, // 后端邮件服务不使用 SSL
+  auth: false, // 后端邮件服务不需要认证
 });
 
 /**

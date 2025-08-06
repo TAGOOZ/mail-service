@@ -8,7 +8,7 @@ export enum WebSocketEvent {
   // 客户端事件
   SUBSCRIBE = 'subscribe',
   UNSUBSCRIBE = 'unsubscribe',
-  
+
   // 服务器事件
   NEW_MAIL = 'newMail',
   EXPIRY_WARNING = 'expiryWarning',
@@ -77,7 +77,7 @@ export interface WebSocketErrorEventData {
 /**
  * WebSocket 事件数据联合类型
  */
-export type WebSocketEventData = 
+export type WebSocketEventData =
   | SubscribeEventData
   | UnsubscribeEventData
   | NewMailEventData
@@ -89,17 +89,20 @@ export type WebSocketEventData =
 // Zod 验证 schemas
 export const WebSocketEventSchema = z.nativeEnum(WebSocketEvent);
 
+// MongoDB ObjectId validation regex (24 hex characters)
+const mongoObjectIdRegex = /^[0-9a-fA-F]{24}$/;
+
 export const SubscribeEventDataSchema = z.object({
-  mailboxId: z.string().uuid(),
+  mailboxId: z.string().regex(mongoObjectIdRegex, 'Invalid mailbox ID format'),
   token: z.string().min(1),
 });
 
 export const UnsubscribeEventDataSchema = z.object({
-  mailboxId: z.string().uuid(),
+  mailboxId: z.string().regex(mongoObjectIdRegex, 'Invalid mailbox ID format'),
 });
 
 export const NewMailEventDataSchema = z.object({
-  mailboxId: z.string().uuid(),
+  mailboxId: z.string().regex(mongoObjectIdRegex, 'Invalid mailbox ID format'),
   mail: z.any(), // 引用 MailSchema，避免循环依赖
 });
 

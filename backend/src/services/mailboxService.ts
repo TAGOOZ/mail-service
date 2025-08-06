@@ -25,7 +25,9 @@ export class MailboxService {
 
       // 确保生成的邮箱地址是唯一的
       do {
-        address = generateMailboxAddress();
+        address = generateMailboxAddress(
+          process.env.MAIL_DOMAIN || '127.0.0.1'
+        );
         const existingMailbox = await Mailbox.findOne({ address });
         isUnique = !existingMailbox;
         attempts++;
