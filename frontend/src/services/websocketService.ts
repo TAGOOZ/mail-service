@@ -112,26 +112,35 @@ class WebSocketService {
    * 获取 WebSocket 服务器 URL
    */
   private getSocketUrl(): string {
-    // Use environment variable or default to current host
+    // Use WebSocket-specific environment variable first
+    const wsUrl = (import.meta as any).env?.VITE_WS_URL;
+    if (wsUrl) {
+      return wsUrl;
+    }
+
+    // Fallback to API base URL
     const apiBaseUrl = (import.meta as any).env?.VITE_API_BASE_URL || '';
 
     // 如果是相对路径，构建完整的 WebSocket URL
     if (apiBaseUrl.startsWith('/')) {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      return `${protocol}//${window.location.host}${apiBaseUrl}`;
+      return `${protocol}//${window.location.host}`;
     }
 
-    // 如果是完整 URL，替换协议
+    // 如果是完整 URL，提取主机部分
     if (apiBaseUrl) {
-      return apiBaseUrl.replace(
-        /^https?:/,
-        window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-      );
+      try {
+        const url = new URL(apiBaseUrl);
+        const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+        return `${protocol}//${url.host}`;
+      } catch {
+        // 如果解析失败，使用默认值
+      }
     }
 
     // Default to current host
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    return `${protocol}//${window.location.host}`;
+    return `${protocol}//${window.location.host}:3001`;
   }
 
   /**

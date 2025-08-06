@@ -169,6 +169,7 @@ export const useWebSocket = () => {
    */
   const handleConnectionChange = useCallback(
     (status: ConnectionStatus) => {
+      console.log('WebSocket status changed:', status);
       dispatch({
         type: 'SET_CONNECTION_STATUS',
         payload: status === ConnectionStatus.CONNECTED,
@@ -222,6 +223,12 @@ export const useWebSocket = () => {
     },
     [dispatch]
   );
+
+  // 初始化时同步连接状态
+  useEffect(() => {
+    const currentStatus = websocketService.getConnectionStatus();
+    handleConnectionChange(currentStatus);
+  }, [handleConnectionChange]);
 
   /**
    * 处理新邮件事件
@@ -453,6 +460,10 @@ export const useWebSocket = () => {
         unsubscribeFromMailbox(isSubscribedRef.current);
       }
     }
+
+    // 同步当前连接状态
+    const currentStatus = websocketService.getConnectionStatus();
+    handleConnectionChange(currentStatus);
 
     // 组件卸载时清理
     return () => {

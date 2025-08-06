@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Mail } from 'lucide-react';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { ConnectionStatus as ConnectionStatusEnum } from '../services/websocketService';
 import ConnectionStatus from './ConnectionStatus';
 import { SessionStatusIndicator } from './SessionRecovery';
 
@@ -19,7 +20,12 @@ const Header: React.FC = () => {
 
           <div className="flex items-center space-x-2 sm:space-x-4">
             <SessionStatusIndicator />
-            <ConnectionStatus status={connectionStatus} className="hidden sm:flex" />
+            <ConnectionStatus
+              isConnected={connectionStatus === ConnectionStatusEnum.CONNECTED}
+              isReconnecting={connectionStatus === ConnectionStatusEnum.RECONNECTING}
+              hasError={connectionStatus === ConnectionStatusEnum.ERROR}
+              className="hidden sm:flex"
+            />
 
             <nav className="flex items-center space-x-3 sm:space-x-6">
               <Link
