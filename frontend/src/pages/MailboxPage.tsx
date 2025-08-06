@@ -48,7 +48,7 @@ const MailboxPage: React.FC = () => {
         loadMails(mailboxId);
       }).catch(console.error);
     }
-  }, [mailboxId, loadMailbox, loadMails]);
+  }, [mailboxId]); // Only depend on mailboxId to avoid duplicate requests
 
   // Request notification permission when mailbox is loaded
   useEffect(() => {

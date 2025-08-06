@@ -471,12 +471,7 @@ export const useWebSocket = () => {
         unsubscribeFromMailbox(isSubscribedRef.current);
       }
     };
-  }, [
-    state.currentMailbox,
-    connect,
-    subscribeToMailbox,
-    unsubscribeFromMailbox,
-  ]);
+  }, [state.currentMailbox]); // Only depend on currentMailbox to avoid duplicate connections
 
   /**
    * 页面可见性变化处理
@@ -500,7 +495,7 @@ export const useWebSocket = () => {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [state.currentMailbox, connect]);
+  }, [state.currentMailbox]); // Only depend on currentMailbox to avoid duplicate connections
 
   return {
     isConnected: state.isConnected,

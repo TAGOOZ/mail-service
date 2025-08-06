@@ -148,6 +148,17 @@ class WebSocketService {
    */
   connect(): void {
     if (this.socket?.connected) {
+      console.log(
+        'WebSocket already connected, skipping duplicate connection attempt'
+      );
+      return;
+    }
+
+    // Prevent multiple connection attempts
+    if (this.connectionStatus === ConnectionStatus.CONNECTING) {
+      console.log(
+        'WebSocket connection already in progress, skipping duplicate attempt'
+      );
       return;
     }
 
@@ -209,6 +220,12 @@ class WebSocketService {
    * 执行订阅操作
    */
   private performSubscription(mailboxId: string, token: string): void {
+    // Prevent duplicate subscriptions to the same mailbox
+    if (this.currentSubscription?.mailboxId === mailboxId) {
+      console.log('Already subscribed to mailbox:', mailboxId);
+      return;
+    }
+
     const subscribeData: SubscribeEventData = { mailboxId, token };
 
     this.socket?.emit(WebSocketEvent.SUBSCRIBE, subscribeData);

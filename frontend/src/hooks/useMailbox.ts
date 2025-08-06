@@ -18,6 +18,14 @@ export const useMailbox = () => {
 
   // Generate new mailbox
   const generateMailbox = useCallback(async () => {
+    // Prevent duplicate calls if already loading
+    if (state.loading) {
+      console.log(
+        'Mailbox generation already in progress, skipping duplicate call'
+      );
+      return;
+    }
+
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'SET_ERROR', payload: null });
 
@@ -56,11 +64,19 @@ export const useMailbox = () => {
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
-  }, [dispatch, navigate, showSuccess, showToast]);
+  }, [dispatch, navigate, showSuccess, showToast, state.loading]);
 
   // Load existing mailbox
   const loadMailbox = useCallback(
     async (mailboxId: string) => {
+      // Prevent duplicate calls if already loading
+      if (state.loading) {
+        console.log(
+          'Mailbox loading already in progress, skipping duplicate call'
+        );
+        return;
+      }
+
       dispatch({ type: 'SET_LOADING', payload: true });
       dispatch({ type: 'SET_ERROR', payload: null });
 
@@ -103,12 +119,20 @@ export const useMailbox = () => {
         dispatch({ type: 'SET_LOADING', payload: false });
       }
     },
-    [dispatch, navigate, showToast]
+    [dispatch, navigate, showToast, state.loading]
   );
 
   // Extend mailbox expiry
   const extendMailbox = useCallback(
     async (mailboxId: string) => {
+      // Prevent duplicate calls if already loading
+      if (state.loading) {
+        console.log(
+          'Mailbox extension already in progress, skipping duplicate call'
+        );
+        return;
+      }
+
       dispatch({ type: 'SET_LOADING', payload: true });
       dispatch({ type: 'SET_ERROR', payload: null });
 
@@ -150,7 +174,7 @@ export const useMailbox = () => {
         dispatch({ type: 'SET_LOADING', payload: false });
       }
     },
-    [dispatch, state.currentMailbox, showSuccess, showToast]
+    [dispatch, state.currentMailbox, showSuccess, showToast, state.loading]
   );
 
   // Delete mailbox
