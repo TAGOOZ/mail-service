@@ -34,6 +34,13 @@ export class AppError extends Error {
 }
 
 export const parseError = (error: unknown): AppError => {
+  // Debug logging for empty errors
+  if (process.env.NODE_ENV === 'development') {
+    if (!error || (typeof error === 'string' && !error.trim())) {
+      console.warn('parseError received empty or null error:', error);
+    }
+  }
+
   // Handle AppError instances
   if (error instanceof AppError) {
     return error;
@@ -49,7 +56,7 @@ export const parseError = (error: unknown): AppError => {
     switch (status) {
       case 400:
         return new AppError(
-          data?.error?.message || '请求参数错误',
+          (data?.error?.message && data.error.message.trim()) || '请求参数错误',
           'VALIDATION_ERROR',
           'E_BAD_REQUEST',
           false,
@@ -118,7 +125,9 @@ export const parseError = (error: unknown): AppError => {
           );
         }
         return new AppError(
-          data?.error?.message || axiosError.message || '网络请求失败',
+          (data?.error?.message && data.error.message.trim()) ||
+            (axiosError.message && axiosError.message.trim()) ||
+            '网络请求失败',
           'HTTP_ERROR',
           'E_HTTP',
           true,
@@ -129,7 +138,8 @@ export const parseError = (error: unknown): AppError => {
 
   // Handle generic Error instances
   if (error instanceof Error) {
-    return new AppError(error.message, 'GENERIC_ERROR', 'E_GENERIC', false);
+    const message = error.message || '发生了未知错误';
+    return new AppError(message, 'GENERIC_ERROR', 'E_GENERIC', false);
   }
 
   // Handle unknown error types
@@ -145,7 +155,7 @@ export const getErrorInfo = (
   // Create base error info
   const errorInfo: ErrorInfo = {
     title: getErrorTitle(appError),
-    message: appError.message,
+    message: (appError.message && appError.message.trim()) || '发生了未知错误',
     type: getErrorType(appError),
     retryable: appError.retryable,
   };

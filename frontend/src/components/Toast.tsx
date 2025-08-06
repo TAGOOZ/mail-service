@@ -107,7 +107,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onClose }) => {
           <h3 className={`text-sm font-medium ${config.titleColor}`}>
             {toast.title}
           </h3>
-          {toast.message && (
+          {toast.message && toast.message.trim() && (
             <p className={`mt-1 text-sm ${config.messageColor}`}>
               {toast.message}
             </p>

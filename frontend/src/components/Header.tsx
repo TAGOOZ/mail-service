@@ -5,9 +5,11 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { ConnectionStatus as ConnectionStatusEnum } from '../services/websocketService';
 import ConnectionStatus from './ConnectionStatus';
 import { SessionStatusIndicator } from './SessionRecovery';
+import { useAuth } from '../hooks/useAuth';
 
 const Header: React.FC = () => {
   const { connectionStatus } = useWebSocket();
+  const { isAuthenticated, mailboxId } = useAuth();
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
@@ -34,6 +36,14 @@ const Header: React.FC = () => {
               >
                 首页
               </Link>
+              {isAuthenticated && mailboxId && (
+                <Link
+                  to={`/mailbox/${mailboxId}`}
+                  className="text-primary-600 hover:text-primary-700 transition-colors text-sm sm:text-base touch-manipulation active:scale-95 px-2 py-1 rounded font-medium"
+                >
+                  我的邮箱
+                </Link>
+              )}
               <a
                 href="#about"
                 className="text-gray-600 hover:text-gray-900 transition-colors text-sm sm:text-base touch-manipulation active:scale-95 px-2 py-1 rounded hidden sm:inline"

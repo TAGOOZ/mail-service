@@ -47,14 +47,18 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
       };
     }
   ) => {
+    // Ensure we don't show toasts with empty titles
+    const cleanTitle = (title && title.trim()) || '通知';
+    const cleanMessage = message && message.trim() ? message : undefined;
+
     const id = generateId();
     const duration = options?.duration ?? (type === 'error' ? 0 : 5000); // Error toasts don't auto-dismiss
 
     const newToast: Toast = {
       id,
       type,
-      title,
-      message,
+      title: cleanTitle,
+      message: cleanMessage,
       duration,
       action: options?.action,
     };
@@ -70,7 +74,9 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   }, []);
 
   const showSuccess = useCallback((title: string, message?: string) => {
-    showToast('success', title, message);
+    const cleanTitle = (title && title.trim()) || '操作成功';
+    const cleanMessage = message && message.trim() ? message : undefined;
+    showToast('success', cleanTitle, cleanMessage);
   }, [showToast]);
 
   const showError = useCallback((
@@ -78,15 +84,22 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
     message?: string,
     options?: { action?: { label: string; onClick: () => void } }
   ) => {
-    showToast('error', title, message, { duration: 0, action: options?.action });
+    // Ensure we don't show empty messages
+    const cleanTitle = (title && title.trim()) || '操作失败';
+    const cleanMessage = message && message.trim() ? message : undefined;
+    showToast('error', cleanTitle, cleanMessage, { duration: 0, action: options?.action });
   }, [showToast]);
 
   const showWarning = useCallback((title: string, message?: string) => {
-    showToast('warning', title, message);
+    const cleanTitle = (title && title.trim()) || '警告';
+    const cleanMessage = message && message.trim() ? message : undefined;
+    showToast('warning', cleanTitle, cleanMessage);
   }, [showToast]);
 
   const showInfo = useCallback((title: string, message?: string) => {
-    showToast('info', title, message);
+    const cleanTitle = (title && title.trim()) || '提示';
+    const cleanMessage = message && message.trim() ? message : undefined;
+    showToast('info', cleanTitle, cleanMessage);
   }, [showToast]);
 
   const removeToast = useCallback((id: string) => {
