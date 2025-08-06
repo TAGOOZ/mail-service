@@ -78,42 +78,49 @@ export const mailApi = {
     if (options?.limit) params.append('limit', options.limit.toString());
 
     return apiRequest(() =>
-      apiClient.get<any>(`/mailbox/${mailboxId}/mails?${params.toString()}`)
+      apiClient.get<any>(`/mail/${mailboxId}?${params.toString()}`)
     );
   },
 
   // Get mail details
   getMail: async (mailboxId: string, mailId: string): Promise<Mail> => {
-    return apiRequest(() =>
-      apiClient.get<any>(`/mailbox/${mailboxId}/mails/${mailId}`)
-    );
+    return apiRequest(() => apiClient.get<any>(`/mail/${mailboxId}/${mailId}`));
   },
 
   // Delete mail
   deleteMail: async (mailboxId: string, mailId: string): Promise<void> => {
     return apiRequest(() =>
-      apiClient.delete<any>(`/mailbox/${mailboxId}/mails/${mailId}`)
+      apiClient.delete<any>(`/mail/${mailboxId}/${mailId}`)
     );
   },
 
   // Clear all mails
   clearAllMails: async (mailboxId: string): Promise<void> => {
-    return apiRequest(() =>
-      apiClient.delete<any>(`/mailbox/${mailboxId}/mails`)
-    );
+    return apiRequest(() => apiClient.delete<any>(`/mail/${mailboxId}`));
   },
 
   // Mark mail as read
   markAsRead: async (mailboxId: string, mailId: string): Promise<void> => {
     return apiRequest(() =>
-      apiClient.patch<any>(`/mailbox/${mailboxId}/mails/${mailId}/read`)
+      apiClient.patch<any>(`/mail/${mailboxId}/${mailId}/read`, {
+        isRead: true,
+      })
     );
   },
 
   // Mark mail as unread
   markAsUnread: async (mailboxId: string, mailId: string): Promise<void> => {
     return apiRequest(() =>
-      apiClient.patch<any>(`/mailbox/${mailboxId}/mails/${mailId}/unread`)
+      apiClient.patch<any>(`/mail/${mailboxId}/${mailId}/read`, {
+        isRead: false,
+      })
+    );
+  },
+
+  // Mark all mails as read
+  markAllAsRead: async (mailboxId: string): Promise<void> => {
+    return apiRequest(() =>
+      apiClient.patch<any>(`/mail/${mailboxId}/mark-all-read`)
     );
   },
 };

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { MailboxService } from '../services/mailboxService';
 import { rateLimiters } from '../middleware/rateLimiting';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware, generateToken } from '../middleware/auth';
 import { logger } from '../utils/logger';
 import { ErrorType } from '@nnu/shared';
 
@@ -25,12 +25,18 @@ router.post(
         expiresAt: mailboxResponse.expiresAt,
       });
 
+      // Generate JWT token for authentication
+      const jwtToken = generateToken(
+        mailboxResponse.mailboxId,
+        mailboxResponse.token
+      );
+
       res.status(201).json({
         success: true,
         data: {
           id: mailboxResponse.mailboxId,
           address: mailboxResponse.address,
-          token: mailboxResponse.token,
+          token: jwtToken,
           createdAt: new Date().toISOString(),
           expiresAt: mailboxResponse.expiresAt,
           extensionCount: 0,
@@ -92,16 +98,32 @@ router.get(
         });
       }
 
-      // 这里应该从数据库获取邮箱信息，暂时返回基本信息
+      // Get mailbox info from database
+      const mailbox = await MailboxService.getMailboxById(mailboxId);
+
+      if (!mailbox) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            type: ErrorType.MAILBOX_NOT_FOUND,
+            message: 'Mailbox not found or expired',
+            code: 'MAILBOX_NOT_FOUND',
+          },
+        });
+      }
+
+      // Generate fresh JWT token
+      const jwtToken = generateToken(mailboxId, mailbox.token);
+
       const mailboxInfo = {
         id: mailboxId,
-        address: 'placeholder@nnu.edu.kg', // 实际应该从数据库获取
-        token: req.user.token,
-        createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        extensionCount: 0,
-        isActive: true,
-        lastAccessAt: new Date().toISOString(),
+        address: mailbox.address,
+        token: jwtToken,
+        createdAt: mailbox.createdAt.toISOString(),
+        expiresAt: mailbox.expiresAt.toISOString(),
+        extensionCount: mailbox.extensionCount,
+        isActive: mailbox.isActive,
+        lastAccessAt: mailbox.lastAccessAt.toISOString(),
       };
 
       res.json({
