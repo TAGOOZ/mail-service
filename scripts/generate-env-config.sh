@@ -51,10 +51,19 @@ echo "📧 Mail Configuration:"
 if [ "$ENV_TYPE" = "development" ]; then
     MAIL_DOMAIN="127.0.0.1"
     echo "Using default mail domain: $MAIL_DOMAIN"
+
+    SMTP_HOST="127.0.0.1"
+    echo "Using default SMTP host: $SMTP_HOST"
 else
     read -p "Enter your mail domain (e.g., nnu.edu.kg): " MAIL_DOMAIN
     if [ -z "$MAIL_DOMAIN" ]; then
         echo "❌ Mail domain is required"
+        exit 1
+    fi
+
+    read -p "Enter your SMTP host (e.g., mailserver): " SMTP_HOST
+    if [ -z "$SMTP_HOST" ]; then
+        echo "❌ SMTP host is required"
         exit 1
     fi
 fi
@@ -119,6 +128,25 @@ FRONTEND_PORT=3000
 FRONTEND_HOST=0.0.0.0
 
 # =============================================================================
+# FRONTEND CONFIGURATION
+# =============================================================================
+
+# API Configuration (使用相对路径，通过 Vite proxy)
+VITE_API_BASE_URL=/api
+
+# WebSocket Configuration (浏览器连接，使用宿主机地址)
+VITE_WS_URL=http://localhost:3001
+
+# App Configuration
+VITE_APP_TITLE=临时邮箱 - 127.0.0.1
+VITE_DOMAIN=127.0.0.1
+
+# React App Configuration (for compatibility)
+REACT_APP_API_URL=http://localhost:3001/api
+REACT_APP_WS_URL=http://localhost:3001
+REACT_APP_MAIL_DOMAIN=127.0.0.1
+
+# =============================================================================
 # DATABASE CONFIGURATION
 # =============================================================================
 
@@ -126,7 +154,7 @@ FRONTEND_HOST=0.0.0.0
 MONGODB_ROOT_USERNAME=$MONGODB_USER
 MONGODB_ROOT_PASSWORD=$MONGODB_PASSWORD
 MONGODB_DATABASE=$DB_NAME
-MONGODB_HOST=localhost
+MONGODB_HOST=mongo-dev
 MONGODB_PORT=27017
 
 # Redis
@@ -143,6 +171,10 @@ MAIL_DOMAIN=$MAIL_DOMAIN
 
 # Internal Mail Processing
 MAIL_PORT=2525
+
+# External Mail Provider, For Sending Mail
+SMTP_HOST=$SMTP_HOST
+SMTP_PORT=1025
 
 EOF
 

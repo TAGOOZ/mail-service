@@ -1,17 +1,17 @@
-version: '3.8'
-
 services:
   # MongoDB database for development
   mongodb-dev:
     image: ${MONGODB_IMAGE}
     container_name: ${MONGODB_CONTAINER_NAME}-dev
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGODB_ROOT_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ROOT_PASSWORD}
       MONGO_INITDB_DATABASE: ${MONGODB_DATABASE}
     ports:
-      - '${MONGODB_PORT}:27017'
+      - '127.0.0.1:${MONGODB_PORT}:27017' # Bind to localhost only for security
     volumes:
       - mongodb_dev_data:/data/db
     networks:
@@ -22,8 +22,10 @@ services:
     image: ${REDIS_IMAGE}
     container_name: ${REDIS_CONTAINER_NAME}-dev
     restart: unless-stopped
+    env_file:
+      - .env
     ports:
-      - '${REDIS_PORT}:6379'
+      - '127.0.0.1:${REDIS_PORT}:6379' # Bind to localhost only for security
     volumes:
       - redis_dev_data:/data
     command: redis-server --appendonly yes
@@ -35,30 +37,47 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile.dev
-    container_name: tempmail-backend-dev
+      args:
+        NODE_ENV: ${NODE_ENV}
+    container_name: ${BACKEND_CONTAINER_NAME}-dev
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      NODE_ENV: development
-      PORT: 3001
-      MONGODB_URI: mongodb://admin:password@mongodb-dev:27017/tempmail_dev?authSource=admin
+      NODE_ENV: ${NODE_ENV}
+      PORT: ${BACKEND_PORT}
+      MONGODB_URI: mongodb://${MONGODB_ROOT_USERNAME}:${MONGODB_ROOT_PASSWORD}@mongodb-dev:27017/${MONGODB_DATABASE}?authSource=admin
       REDIS_URL: redis://redis-dev:6379
-      MAIL_DOMAIN: nnu.edu.kg
-      MAIL_PORT: 2525
+      MAIL_DOMAIN: ${MAIL_DOMAIN}
+      MAIL_PORT: ${MAIL_PORT}
       # SMTP settings for outgoing emails (send to MailHog for testing)
-      SMTP_HOST: mailhog
-      SMTP_PORT: 1025
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
       # MailHog forwarding settings (for development visualization)
-      MAILHOG_HOST: mailhog
-      MAILHOG_PORT: 1025
+      MAILHOG_HOST: ${MAILHOG_HOST}
+      MAILHOG_PORT: ${MAILHOG_PORT}
       # CORS settings
-      CORS_ORIGIN: http://localhost:3000
+      CORS_ORIGIN: ${CORS_ORIGIN}
       LOG_LEVEL: DEBUG
+      # Security settings
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      SESSION_SECRET: ${SESSION_SECRET}
+      BCRYPT_ROUNDS: ${BCRYPT_ROUNDS}
+      CORS_ADDITIONAL_ORIGINS: ${CORS_ADDITIONAL_ORIGINS}
+      CORS_CREDENTIALS: ${CORS_CREDENTIALS}
+      CORS_METHODS: ${CORS_METHODS}
+      CORS_ALLOWED_HEADERS: ${CORS_ALLOWED_HEADERS}
+      CORS_EXPOSED_HEADERS: ${CORS_EXPOSED_HEADERS}
+      # Rate limiting
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS}
+      RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS}
       # Enable polling for file watching in Docker
       CHOKIDAR_USEPOLLING: true
       CHOKIDAR_INTERVAL: 1000
     ports:
-      - '3001:3001'
-      - '127.0.0.1:2525:2525' # Internal mail processing port
+      - '127.0.0.1:${BACKEND_PORT}:${BACKEND_PORT}' # Bind to localhost only, nginx will proxy
+      - '127.0.0.1:${MAIL_PORT}:${MAIL_PORT}' # Internal mail processing port (accessed by mailserver)
     depends_on:
       - mongodb-dev
       - redis-dev
@@ -84,12 +103,19 @@ services:
       context: .
       dockerfile: frontend/Dockerfile.dev
       args:
-        VITE_API_BASE_URL: http://localhost:3001/api
-        VITE_WS_URL: http://localhost:3001
-        VITE_DOMAIN: 127.0.0.1
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+        VITE_WS_URL: ${VITE_WS_URL}
+        VITE_DOMAIN: ${VITE_DOMAIN}
     container_name: tempmail-frontend-dev
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+      VITE_WS_URL: ${VITE_WS_URL}
+      VITE_DOMAIN: ${VITE_DOMAIN}
+      # Security settings
+      VITE_LOG_LEVEL: DEBUG
       # Enable polling for file watching in Docker
       CHOKIDAR_USEPOLLING: true
       CHOKIDAR_INTERVAL: 1000
@@ -97,7 +123,7 @@ services:
       VITE_HOST: 0.0.0.0
       VITE_PORT: 3000
     ports:
-      - '3000:3000'
+      - '127.0.0.1:${FRONTEND_PORT}:${FRONTEND_PORT}'
     depends_on:
       - backend-dev
     networks:
@@ -124,6 +150,8 @@ services:
     image: mailhog/mailhog:latest
     container_name: tempmail-mailhog-dev
     restart: unless-stopped
+    env_file:
+      - .env
     ports:
       - '1025:1025' # SMTP server (for outgoing email testing)
       - '8025:8025' # Web UI
@@ -135,6 +163,8 @@ services:
     image: alpine:latest
     container_name: tempmail-forwarder-dev
     restart: unless-stopped
+    env_file:
+      - .env
     command: >
       sh -c "
         apk add --no-cache socat &&

@@ -8,9 +8,9 @@
 | --------------- | --------------------------------------------- | -------------------------------- |
 | 🚀 **首次部署** | [生产环境部署](docs/PRODUCTION_DEPLOYMENT.md) | `./scripts/deploy-production.sh` |
 | 🛠️ **开发调试** | [邮件系统架构](docs/MAIL_ARCHITECTURE.md)     | `./scripts/dev-start.sh`         |
-| 🔧 **配置修改** | [配置文件说明](config/README.md)              | `./scripts/validate-config.sh`   |
+| 🔧 **配置修改** | [配置文件说明](config/README.md)              | `./scripts/validate-all.sh`      |
 | 🐛 **故障排除** | [运维手册](docs/OPERATIONS_RUNBOOK.md)        | `./scripts/health-check.sh`      |
-| 📊 **系统监控** | [备份与清理](docs/BACKUP_AND_CLEANUP.md)      | `./scripts/monitor.sh`           |
+| 📊 **系统监控** | [备份与清理](docs/BACKUP_CLEANUP_GUIDE.md)    | `./scripts/backup-cleanup.sh`    |
 
 ## 🚀 快速开始
 
@@ -54,8 +54,8 @@ docker-compose -f docker-compose.dev.yml logs -f frontend-dev
 # 启动生产环境（自动验证配置）
 ./scripts/prod-start.sh
 
-# 验证生产环境配置
-./scripts/validate-production-mailserver.sh
+# 验证邮件服务器配置
+./scripts/validate-all.sh --mailserver-only
 ```
 
 ### 4. 配置验证
@@ -64,8 +64,14 @@ docker-compose -f docker-compose.dev.yml logs -f frontend-dev
 # 验证环境变量配置
 ./scripts/validate-env-config.sh
 
-# 验证整体配置
-./scripts/validate-config.sh
+# 验证所有配置（部署前）
+./scripts/validate-all.sh
+
+# 检查运行时状态（部署后）
+./scripts/check-environment.sh
+
+# 检查运行时服务状态
+./scripts/check-environment.sh
 ```
 
 2. **启动生产环境**
@@ -93,15 +99,15 @@ docker-compose -f docker-compose.dev.yml logs -f frontend-dev
 
 - **启动开发环境**: `./scripts/dev-start.sh`
 - **邮件功能测试**: `./scripts/test-mail-forwarding.sh`
-- **配置验证**: `./scripts/validate-config.sh`
+- **配置验证**: `./scripts/validate-all.sh`
 - **环境状态检查**: `./scripts/check-environment.sh`
 
 ### 生产环境
 
 - **启动生产环境**: `./scripts/prod-start.sh`
 - **生产环境部署**: `./scripts/deploy-production.sh`
-- **生产配置验证**: `./scripts/validate-production-config.sh`
-- **环境初始化**: `./scripts/setup-env.sh`
+- **生产配置验证**: `./scripts/validate-all.sh --system`
+- **环境配置生成**: `./scripts/generate-env-config.sh`
 
 ### 运维管理
 
@@ -109,6 +115,15 @@ docker-compose -f docker-compose.dev.yml logs -f frontend-dev
 - **系统监控**: `./scripts/monitor.sh`
 - **数据备份**: `./scripts/backup.sh`
 - **系统维护**: `./scripts/maintenance.sh`
+
+### 备份与清理
+
+- **服务状态**: `./scripts/backup-cleanup.sh status`
+- **执行备份**: `./scripts/backup-cleanup.sh backup`
+- **执行清理**: `./scripts/backup-cleanup.sh cleanup`
+- **系统监控**: `./scripts/backup-cleanup.sh monitor`
+- **安装服务**: `./scripts/install-backup-cleanup.sh`
+- **安装定时任务**: `./scripts/backup-cleanup.sh install`
 
 ## 📁 项目结构
 
@@ -147,7 +162,7 @@ docker-compose -f docker-compose.dev.yml logs -f frontend-dev
 ### 🔧 配置与管理
 
 - [配置文件说明](config/README.md) - 各服务配置文件详解
-- [备份与清理](docs/BACKUP_AND_CLEANUP.md) - 数据备份和清理策略
+- [备份与清理](docs/BACKUP_CLEANUP_GUIDE.md) - 数据备份和清理策略
 
 ### 🛠️ 开发指南
 
@@ -163,7 +178,7 @@ docker-compose -f docker-compose.dev.yml logs -f frontend-dev
 | [DEPLOYMENT_CHECKLIST.md](docs/DEPLOYMENT_CHECKLIST.md)   | 部署前后的检查项目     | 部署验证     |
 | [OPERATIONS_RUNBOOK.md](docs/OPERATIONS_RUNBOOK.md)       | 日常运维和故障处理     | 运维管理     |
 | [CORS_CONFIGURATION.md](docs/CORS_CONFIGURATION.md)       | 跨域请求配置详解       | 前端集成     |
-| [BACKUP_AND_CLEANUP.md](docs/BACKUP_AND_CLEANUP.md)       | 数据备份和清理策略     | 数据管理     |
+| [BACKUP_CLEANUP_GUIDE.md](docs/BACKUP_CLEANUP_GUIDE.md)   | 数据备份和清理策略     | 数据管理     |
 | [config/README.md](config/README.md)                      | 各服务配置文件详解     | 配置管理     |
 
 ## ❓ 故障排除
@@ -171,8 +186,8 @@ docker-compose -f docker-compose.dev.yml logs -f frontend-dev
 ### 快速诊断
 
 ```bash
-# 验证所有配置文件
-./scripts/validate-config.sh
+# 验证所有配置
+./scripts/validate-all.sh
 
 # 检查环境状态
 ./scripts/check-environment.sh
@@ -184,7 +199,7 @@ docker-compose -f docker-compose.dev.yml logs -f frontend-dev
 ### 常见问题
 
 1. **配置文件问题**
-   - 运行 `./scripts/validate-config.sh` 检查配置完整性
+   - 运行 `./scripts/validate-all.sh` 检查配置完整性
    - 查看 [配置文件说明](config/README.md) 了解详细配置
 
 2. **端口冲突**
@@ -215,8 +230,8 @@ docker-compose -f docker-compose.dev.yml logs -f frontend-dev
 | `dev-start.sh`            | 启动开发环境       | 本地开发   |
 | `prod-start.sh`           | 启动生产环境       | 生产部署   |
 | `test-mail-forwarding.sh` | 测试邮件转发功能   | 功能验证   |
-| `validate-config.sh`      | 验证配置文件完整性 | 配置检查   |
-| `check-environment.sh`    | 检查环境状态       | 环境诊断   |
+| `validate-all.sh`         | 验证所有配置       | 配置检查   |
+| `check-environment.sh`    | 检查运行时服务状态 | 环境诊断   |
 | `deploy-production.sh`    | 生产环境部署       | 自动化部署 |
 | `health-check.sh`         | 系统健康检查       | 运维监控   |
 | `monitor.sh`              | 系统监控           | 性能监控   |

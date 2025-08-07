@@ -21,25 +21,37 @@ check_service() {
     fi
 }
 
-# Function to check environment variables
+# Function to load and check environment variables
 check_env_vars() {
     local env_type=$1
     echo ""
     echo "📋 $env_type Environment Variables:"
     
-    if [ "$env_type" = "Development" ]; then
-        echo "   NODE_ENV: ${NODE_ENV:-not set}"
-        echo "   MAILHOG_HOST: ${MAILHOG_HOST:-not set}"
-        echo "   MAILHOG_PORT: ${MAILHOG_PORT:-not set}"
-        echo "   SMTP_HOST: ${SMTP_HOST:-not set}"
-        echo "   SMTP_PORT: ${SMTP_PORT:-not set}"
+    # Load .env file if it exists
+    if [ -f ".env" ]; then
+        set -a
+        source .env 2>/dev/null
+        set +a
+        echo "   ✅ .env file loaded"
     else
-        echo "   NODE_ENV: ${NODE_ENV:-not set}"
-        echo "   MAIL_DOMAIN: ${MAIL_DOMAIN:-not set}"
-        echo "   POSTFIX_MYHOSTNAME: ${POSTFIX_MYHOSTNAME:-not set}"
+        echo "   ⚠️  .env file not found"
     fi
     
-    echo "   MAIL_PORT: ${MAIL_PORT:-not set}"
+    # Check key variables
+    local key_vars
+    if [ "$env_type" = "Development" ]; then
+        key_vars="NODE_ENV MAILHOG_HOST MAILHOG_PORT BACKEND_PORT"
+    else
+        key_vars="NODE_ENV MAIL_DOMAIN POSTFIX_MYHOSTNAME BACKEND_PORT"
+    fi
+    
+    for var in $key_vars; do
+        if [ -n "${!var}" ]; then
+            echo "   ✅ $var: ${!var}"
+        else
+            echo "   ❌ $var: not set"
+        fi
+    done
 }
 
 # Detect environment
@@ -61,31 +73,46 @@ echo "📄 Compose File: $COMPOSE_FILE"
 echo ""
 echo "🔍 Service Status Check:"
 
+# Load environment variables to get correct ports
+if [ -f ".env" ]; then
+    set -a
+    source .env 2>/dev/null
+    set +a
+fi
+
+# Use environment variables for port numbers
+MONGODB_PORT=${MONGODB_PORT:-27017}
+REDIS_PORT=${REDIS_PORT:-6379}
+BACKEND_PORT=${BACKEND_PORT:-3001}
+FRONTEND_PORT=${FRONTEND_PORT:-3000}
+MAILHOG_PORT=${MAILHOG_PORT:-1025}
+MAILHOG_UI_PORT=${MAILHOG_UI_PORT:-8025}
+
 if [ "$ENV_TYPE" = "Development" ]; then
     # Development environment checks
-    check_service "MongoDB" "localhost" "27017"
-    check_service "Redis" "localhost" "6379"
-    check_service "Backend API" "localhost" "3001"
-    check_service "Frontend" "localhost" "3000"
-    check_service "MailHog SMTP" "localhost" "1025"
-    check_service "MailHog UI" "localhost" "8025"
+    check_service "MongoDB" "localhost" "$MONGODB_PORT"
+    check_service "Redis" "localhost" "$REDIS_PORT"
+    check_service "Backend API" "localhost" "$BACKEND_PORT"
+    check_service "Frontend" "localhost" "$FRONTEND_PORT"
+    check_service "MailHog SMTP" "localhost" "$MAILHOG_PORT"
+    check_service "MailHog UI" "localhost" "$MAILHOG_UI_PORT"
     check_service "Mail Forwarder" "localhost" "25"
     
     echo ""
     echo "📧 Development Mail Flow:"
-    echo "   External → Port 25 → Backend:2525 → Database + MailHog"
+    echo "   External → Port 25 → Backend:${MAIL_PORT:-2525} → Database + MailHog"
     
 else
     # Production environment checks
-    check_service "MongoDB" "localhost" "27017"
-    check_service "Redis" "localhost" "6379"
-    check_service "Backend API" "localhost" "3001"
+    check_service "MongoDB" "localhost" "$MONGODB_PORT"
+    check_service "Redis" "localhost" "$REDIS_PORT"
+    check_service "Backend API" "localhost" "$BACKEND_PORT"
     check_service "Postfix SMTP" "localhost" "25"
     check_service "Nginx" "localhost" "80"
     
     echo ""
     echo "📧 Production Mail Flow:"
-    echo "   External → Port 25 (Postfix) → Backend:2525 → Database"
+    echo "   External → Port 25 (Postfix) → Backend:${MAIL_PORT:-2525} → Database"
 fi
 
 # Check backend health
