@@ -219,7 +219,8 @@ test_services() {
     
     # 测试邮件服务
     echo "测试邮件服务..."
-    if timeout 5 bash -c "</dev/tcp/localhost/25" 2>/dev/null; then
+    sleep 5
+    if bash -c "</dev/tcp/localhost/25" 2>/dev/null; then
         echo -e "${GREEN}✅ 邮件服务正常${NC}"
     else
         echo -e "${RED}❌ 邮件服务异常${NC}"

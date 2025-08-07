@@ -1,0 +1,4 @@
+# Transport map - forward all mail to backend:2525
+# This is used with hash: lookup, for simple domain-based forwarding
+# Format: domain    transport:destination
+nnu.edu.kg      smtp:[backend]:2525

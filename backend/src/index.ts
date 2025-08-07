@@ -28,6 +28,7 @@ import { BackupService } from './services/backupService';
 import { DataCleanupService } from './services/dataCleanupService';
 import { MonitoringService } from './services/monitoringService';
 import { mailReceivingService } from './services/mailReceivingService';
+import { mailHogForwardingService } from './services/mailHogForwardingService';
 import { webSocketService } from './services/websocketService';
 import { mailWebSocketIntegration } from './services/mailWebSocketIntegration';
 
@@ -269,8 +270,11 @@ app.get('/health/cleanup', async (req, res) => {
 app.get('/health/mail', async (req, res) => {
   try {
     const mailServiceStatus = mailReceivingService.getStatus();
+    const mailHogStatus = mailHogForwardingService.getStatus();
+
     res.status(200).json({
       mailService: mailServiceStatus,
+      mailHogForwarding: mailHogStatus,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

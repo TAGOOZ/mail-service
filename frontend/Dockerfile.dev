@@ -1,0 +1,36 @@
+# Frontend Development Dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install dependencies first (for better caching)
+COPY package*.json ./
+COPY shared/package*.json ./shared/
+COPY frontend/package*.json ./frontend/
+
+# Install all dependencies
+RUN npm ci
+
+# Copy initial source code (will be overridden by volumes)
+COPY shared/ ./shared/
+COPY frontend/ ./frontend/
+COPY tsconfig.json ./
+
+# Build shared types initially
+RUN cd shared && npm run build
+
+# Set development environment
+ENV NODE_ENV=development
+
+# Expose port
+EXPOSE 3000
+
+# Create a startup script that rebuilds shared types and starts the dev server
+RUN echo '#!/bin/sh' > /start-dev.sh && \
+    echo 'echo "Starting frontend development server..."' >> /start-dev.sh && \
+    echo 'cd /app/shared && npm run build' >> /start-dev.sh && \
+    echo 'cd /app/frontend && npm run dev -- --host 0.0.0.0 --port 3000' >> /start-dev.sh && \
+    chmod +x /start-dev.sh
+
+# Use the startup script
+CMD ["/start-dev.sh"]

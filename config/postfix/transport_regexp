@@ -1,0 +1,3 @@
+# Transport mapping - forward all mail to backend:2525
+# All emails to @nnu.edu.kg should be forwarded to the backend service
+/^(.+)@nnu\.edu\.kg$/    smtp:[backend]:2525

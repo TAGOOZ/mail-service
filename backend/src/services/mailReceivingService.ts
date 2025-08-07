@@ -4,6 +4,7 @@ import { MailboxService } from './mailboxService';
 import { Mail } from '../models/Mail';
 import { logger } from '../utils/logger';
 import { EventEmitter } from 'events';
+import { mailHogForwardingService } from './mailHogForwardingService';
 
 export interface MailReceivedEvent {
   mailboxId: string;
@@ -227,6 +228,14 @@ export class MailReceivingService extends EventEmitter {
 
       // 存储邮件
       const savedMail = await this.saveMail(mailbox.id, parsedMail);
+
+      // 转发邮件到 MailHog 进行可视化（仅开发环境）
+      if (process.env.NODE_ENV === 'development') {
+        await mailHogForwardingService.forwardToMailHog(
+          parsedMail,
+          rawMailData
+        );
+      }
 
       // 发出邮件接收事件
       this.emit('mailReceived', {

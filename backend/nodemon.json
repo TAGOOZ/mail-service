@@ -1,0 +1,18 @@
+{
+  "watch": ["src/**/*", "../shared/src/**/*"],
+  "ext": "ts,js,json",
+  "ignore": [
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "node_modules/**/*",
+    "dist/**/*",
+    "logs/**/*"
+  ],
+  "exec": "ts-node src/index.ts",
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "delay": 1000,
+  "verbose": true,
+  "legacyWatch": true
+}

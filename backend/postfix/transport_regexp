@@ -1,2 +1,0 @@
-# Transport mapping to forward all nnu.edu.kg emails to our Node.js service
-/^(.+)@nnu\.edu\.kg$/ smtp:[localhost]:2525

@@ -12,14 +12,19 @@ export default defineConfig({
     },
   },
   server: {
+    host: '0.0.0.0', // Allow external connections (required for Docker)
     port: 3000,
+    watch: {
+      usePolling: true, // Enable polling for Docker file watching
+      interval: 1000,
+    },
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'http://backend-dev:3001', // Use Docker service name
         changeOrigin: true,
       },
       '/socket.io': {
-        target: 'http://localhost:3001',
+        target: 'http://backend-dev:3001', // Use Docker service name
         changeOrigin: true,
         ws: true,
       },

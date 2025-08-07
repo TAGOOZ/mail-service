@@ -1,0 +1,42 @@
+# Backend Development Dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install dependencies first (for better caching)
+COPY package*.json ./
+COPY shared/package*.json ./shared/
+COPY backend/package*.json ./backend/
+
+# Install all dependencies (including dev dependencies)
+RUN npm ci
+
+# Copy initial source code (will be overridden by volumes)
+COPY shared/ ./shared/
+COPY backend/ ./backend/
+COPY tsconfig.json ./
+
+# Build shared types initially
+RUN cd shared && npm run build
+
+# Create logs directory
+RUN mkdir -p /app/logs
+
+# Set development environment
+ENV NODE_ENV=development
+
+# Install nodemon globally for better performance
+RUN npm install -g nodemon
+
+# Expose ports
+EXPOSE 3001 2525
+
+# Create a startup script that rebuilds shared types and starts the server
+RUN echo '#!/bin/sh' > /start-dev.sh && \
+    echo 'echo "Starting development server..."' >> /start-dev.sh && \
+    echo 'cd /app/shared && npm run build' >> /start-dev.sh && \
+    echo 'cd /app/backend && npm run dev' >> /start-dev.sh && \
+    chmod +x /start-dev.sh
+
+# Use the startup script
+CMD ["/start-dev.sh"]

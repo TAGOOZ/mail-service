@@ -11,9 +11,9 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy custom Postfix configuration
-COPY backend/postfix/main.cf /etc/postfix/main.cf
-COPY backend/postfix/virtual_regexp /etc/postfix/virtual_regexp
-COPY backend/postfix/transport_regexp /etc/postfix/transport_regexp
+COPY config/postfix/main.cf /etc/postfix/main.cf
+COPY config/postfix/virtual_regexp /etc/postfix/virtual_regexp
+COPY config/postfix/transport_regexp /etc/postfix/transport_regexp
 
 # Create supervisor configuration
 RUN echo '[supervisord]' > /etc/supervisor/conf.d/supervisord.conf && \
@@ -31,7 +31,8 @@ RUN echo '[supervisord]' > /etc/supervisor/conf.d/supervisord.conf && \
 
 # Set up postfix maps
 RUN postmap /etc/postfix/virtual_regexp && \
-    postmap /etc/postfix/transport_regexp
+    postmap /etc/postfix/transport_regexp && \
+    postmap /etc/postfix/transport
 
 # Create startup script
 RUN echo '#!/bin/bash' > /start.sh && \
@@ -53,6 +54,7 @@ RUN echo '#!/bin/bash' > /start.sh && \
     echo '# Update transport to point to backend service' >> /start.sh && \
     echo 'sed -i "s/localhost:2525/backend:2525/g" /etc/postfix/transport_regexp' >> /start.sh && \
     echo 'postmap /etc/postfix/transport_regexp' >> /start.sh && \
+    echo 'postmap /etc/postfix/transport' >> /start.sh && \
     echo '' >> /start.sh && \
     echo '# Start supervisor' >> /start.sh && \
     echo 'exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf' >> /start.sh && \

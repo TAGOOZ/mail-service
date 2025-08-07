@@ -3,15 +3,15 @@ version: '3.8'
 services:
   # MongoDB database
   mongodb:
-    image: mongo:7.0
-    container_name: tempmail-mongodb-prod
+    image: ${MONGODB_IMAGE}
+    container_name: ${MONGODB_CONTAINER_NAME}
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGODB_ROOT_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ROOT_PASSWORD}
       MONGO_INITDB_DATABASE: ${MONGODB_DATABASE}
     ports:
-      - '127.0.0.1:27017:27017' # Bind to localhost only for security
+      - '127.0.0.1:${MONGODB_PORT}:27017' # Bind to localhost only for security
     volumes:
       - mongodb_prod_data:/data/db
       - ./config/mongodb/mongod.conf:/etc/mongod.conf:ro
@@ -21,18 +21,26 @@ services:
     command: ['mongod', '--config', '/etc/mongod.conf']
     healthcheck:
       test: ['CMD', 'mongosh', '--eval', "db.adminCommand('ping')"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+      interval: ${HEALTH_CHECK_INTERVAL}
+      timeout: ${HEALTH_CHECK_TIMEOUT}
+      retries: ${HEALTH_CHECK_RETRIES}
+      start_period: ${HEALTH_CHECK_START_PERIOD}
+    deploy:
+      resources:
+        limits:
+          memory: ${MONGODB_MEMORY_LIMIT}
+          cpus: '${MONGODB_CPU_LIMIT}'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
 
   # Redis cache
   redis:
-    image: redis:7.2-alpine
-    container_name: tempmail-redis-prod
+    image: ${REDIS_IMAGE}
+    container_name: ${REDIS_CONTAINER_NAME}
     restart: unless-stopped
     ports:
-      - '127.0.0.1:6379:6379' # Bind to localhost only for security
+      - '127.0.0.1:${REDIS_PORT}:6379' # Bind to localhost only for security
     volumes:
       - redis_prod_data:/data
       - ./config/redis/redis.conf:/etc/redis/redis.conf:ro
@@ -41,10 +49,18 @@ services:
     command: ['redis-server', '/etc/redis/redis.conf']
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+      interval: ${HEALTH_CHECK_INTERVAL}
+      timeout: ${HEALTH_CHECK_TIMEOUT}
+      retries: ${HEALTH_CHECK_RETRIES}
+      start_period: ${HEALTH_CHECK_START_PERIOD}
+    deploy:
+      resources:
+        limits:
+          memory: ${REDIS_MEMORY_LIMIT}
+          cpus: '${REDIS_CPU_LIMIT}'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
 
   # Backend API
   backend:
@@ -52,27 +68,32 @@ services:
       context: .
       dockerfile: backend/Dockerfile.prod
       args:
-        NODE_ENV: production
-    container_name: tempmail-backend-prod
+        NODE_ENV: ${NODE_ENV}
+    container_name: ${BACKEND_CONTAINER_NAME}
     restart: unless-stopped
     environment:
-      NODE_ENV: production
-      PORT: 3001
+      NODE_ENV: ${NODE_ENV}
+      PORT: ${BACKEND_PORT}
       MONGODB_URI: mongodb://${MONGODB_ROOT_USERNAME}:${MONGODB_ROOT_PASSWORD}@mongodb:27017/${MONGODB_DATABASE}?authSource=admin
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://redis:${REDIS_PORT}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
       MAIL_DOMAIN: ${MAIL_DOMAIN}
-      SMTP_HOST: mailserver
-      SMTP_PORT: 25
-      MAIL_PORT: 2525
+      MAIL_PORT: ${MAIL_PORT}
       CORS_ORIGIN: ${CORS_ORIGIN}
+      CORS_ADDITIONAL_ORIGINS: ${CORS_ADDITIONAL_ORIGINS}
+      CORS_CREDENTIALS: ${CORS_CREDENTIALS}
+      CORS_METHODS: ${CORS_METHODS}
+      CORS_ALLOWED_HEADERS: ${CORS_ALLOWED_HEADERS}
+      CORS_EXPOSED_HEADERS: ${CORS_EXPOSED_HEADERS}
       LOG_LEVEL: ${LOG_LEVEL}
       RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS}
       RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS}
+      BCRYPT_ROUNDS: ${BCRYPT_ROUNDS}
+      SESSION_SECRET: ${SESSION_SECRET}
     ports:
-      - '127.0.0.1:3001:3001' # Bind to localhost only, nginx will proxy
-      - '127.0.0.1:2525:2525' # Internal mail processing port
+      - '127.0.0.1:${BACKEND_PORT}:${BACKEND_PORT}' # Bind to localhost only, nginx will proxy
+      - '127.0.0.1:${MAIL_PORT}:${MAIL_PORT}' # Internal mail processing port (accessed by mailserver)
     depends_on:
       mongodb:
         condition: service_healthy
@@ -84,16 +105,16 @@ services:
       - ./logs:/app/logs
       - /etc/localtime:/etc/localtime:ro
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3001/api/health']
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ['CMD', 'curl', '-f', 'http://localhost:${BACKEND_PORT}/api/health']
+      interval: ${HEALTH_CHECK_INTERVAL}
+      timeout: ${HEALTH_CHECK_TIMEOUT}
+      retries: ${HEALTH_CHECK_RETRIES}
       start_period: 60s
     deploy:
       resources:
         limits:
-          memory: 512M
-          cpus: '0.5'
+          memory: ${BACKEND_MEMORY_LIMIT}
+          cpus: '${BACKEND_CPU_LIMIT}'
         reservations:
           memory: 256M
           cpus: '0.25'
@@ -133,24 +154,23 @@ services:
           memory: 64M
           cpus: '0.1'
 
-  # Mail server (Postfix)
+  # Mail server (Postfix) - Acts as SMTP frontend, forwards to backend
   mailserver:
     build:
       context: .
       dockerfile: Dockerfile.postfix
-    container_name: tempmail-postfix-prod
+    container_name: ${MAILSERVER_CONTAINER_NAME}
     restart: unless-stopped
     environment:
-      POSTFIX_MYHOSTNAME: ${MAIL_DOMAIN}
-      POSTFIX_MYDOMAIN: ${MAIL_DOMAIN}
-      POSTFIX_MYORIGIN: ${MAIL_DOMAIN}
-      POSTFIX_RELAY_HOST: ${POSTFIX_RELAY_HOST:-}
-      POSTFIX_RELAY_PORT: ${POSTFIX_RELAY_PORT:-587}
-      POSTFIX_RELAY_USERNAME: ${POSTFIX_RELAY_USERNAME:-}
-      POSTFIX_RELAY_PASSWORD: ${POSTFIX_RELAY_PASSWORD:-}
+      POSTFIX_MYHOSTNAME: ${POSTFIX_MYHOSTNAME}
+      POSTFIX_MYDOMAIN: ${POSTFIX_MYDOMAIN}
+      POSTFIX_MYORIGIN: ${POSTFIX_MYORIGIN}
+      # Configure to forward all mail to backend
+      POSTFIX_RELAY_HOST: backend
+      POSTFIX_RELAY_PORT: ${MAIL_PORT}
     ports:
-      - '25:25' # SMTP port for receiving emails
-      - '587:587' # SMTP submission port
+      - '${POSTFIX_SMTP_PORT}:25' # Standard SMTP port
+      - '${POSTFIX_SUBMISSION_PORT}:587' # SMTP submission port (optional)
     volumes:
       - mailserver_prod_data:/var/spool/postfix
       - ./config/postfix:/etc/postfix/custom:ro
@@ -163,23 +183,23 @@ services:
       - tempmail-network
     healthcheck:
       test: ['CMD', 'postfix', 'status']
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      interval: ${HEALTH_CHECK_INTERVAL}
+      timeout: ${HEALTH_CHECK_TIMEOUT}
+      retries: ${HEALTH_CHECK_RETRIES}
       start_period: 60s
     deploy:
       resources:
         limits:
-          memory: 256M
-          cpus: '0.5'
+          memory: ${MAILSERVER_MEMORY_LIMIT}
+          cpus: '${MAILSERVER_CPU_LIMIT}'
         reservations:
           memory: 128M
           cpus: '0.25'
 
   # Nginx reverse proxy
   nginx:
-    image: nginx:1.25-alpine
-    container_name: tempmail-nginx-prod
+    image: ${NGINX_IMAGE}
+    container_name: ${NGINX_CONTAINER_NAME}
     restart: unless-stopped
     ports:
       - '80:80'
@@ -200,15 +220,15 @@ services:
       - tempmail-network
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:80/health']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+      interval: ${HEALTH_CHECK_INTERVAL}
+      timeout: ${HEALTH_CHECK_TIMEOUT}
+      retries: ${HEALTH_CHECK_RETRIES}
+      start_period: ${HEALTH_CHECK_START_PERIOD}
     deploy:
       resources:
         limits:
-          memory: 128M
-          cpus: '0.25'
+          memory: ${NGINX_MEMORY_LIMIT}
+          cpus: '${NGINX_CPU_LIMIT}'
         reservations:
           memory: 64M
           cpus: '0.1'

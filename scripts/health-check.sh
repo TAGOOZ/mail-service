@@ -39,8 +39,8 @@ check_tcp() {
     local host=$1
     local port=$2
     local service=$3
-    
-    if timeout 5 bash -c "</dev/tcp/$host/$port"; then
+    sleep 5
+    if bash -c "</dev/tcp/$host/$port"; then
         echo -e "${GREEN}✓${NC} $service is reachable"
         return 0
     else

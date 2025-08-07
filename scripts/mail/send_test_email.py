@@ -18,7 +18,7 @@ def send_test_email(to_address, subject="测试邮件", content="这是一封测
 
     # SMTP 服务器配置（使用后端邮件接收服务）
     smtp_server = "localhost"
-    smtp_port = 2525
+    smtp_port = 25
 
     # 创建邮件
     msg = MIMEMultipart()

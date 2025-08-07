@@ -1,0 +1,47 @@
+# Postfix main configuration for production mail forwarding
+# This configuration receives mail on port 25 and forwards to backend:2525
+
+# Basic settings
+myhostname = ${POSTFIX_MYHOSTNAME}
+mydomain = ${POSTFIX_MYDOMAIN}
+myorigin = ${POSTFIX_MYORIGIN}
+
+# Network settings
+inet_interfaces = all
+inet_protocols = ipv4
+
+# Mail handling
+mydestination = 
+local_recipient_maps = 
+local_transport = error:Local delivery disabled
+
+# Virtual domain handling
+virtual_regexp_maps = regexp:/etc/postfix/virtual_regexp
+transport_maps = regexp:/etc/postfix/transport_regexp
+
+# Security settings
+smtpd_banner = $myhostname ESMTP
+disable_vrfy_command = yes
+smtpd_helo_required = yes
+
+# Basic restrictions
+smtpd_recipient_restrictions = 
+    permit_mynetworks,
+    reject_unauth_destination,
+    permit
+
+# Relay restrictions
+smtpd_relay_restrictions = 
+    permit_mynetworks,
+    reject_unauth_destination
+
+# Message size limits
+message_size_limit = 10240000
+
+# Logging
+maillog_file = /var/log/postfix/postfix.log
+maillog_file_prefixes = /var/log/postfix
+
+# Queue settings
+maximal_queue_lifetime = 1h
+bounce_queue_lifetime = 1h

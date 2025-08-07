@@ -1,0 +1,3 @@
+# Virtual domain mapping for nnu.edu.kg
+# All emails to @nnu.edu.kg should be accepted
+/^(.+)@nnu\.edu\.kg$/    $1@nnu.edu.kg
