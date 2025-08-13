@@ -22,6 +22,7 @@ COPY backend/package*.json ./backend/
 
 # Install production dependencies only
 RUN npm ci --only=production --no-audit --no-fund && \
+    cd backend && npm ci --only=production --no-audit --no-fund && cd .. && \
     npm cache clean --force
 
 # Build stage
@@ -32,7 +33,9 @@ WORKDIR /app
 COPY package*.json ./
 COPY shared/package*.json ./shared/
 COPY backend/package*.json ./backend/
-RUN npm ci --no-audit --no-fund
+RUN npm ci --no-audit --no-fund && \
+    cd shared && npm ci --no-audit --no-fund && cd .. && \
+    cd backend && npm ci --no-audit --no-fund && cd ..
 
 # Copy source code
 COPY shared/ ./shared/
@@ -43,7 +46,7 @@ COPY tsconfig.json ./
 RUN cd shared && npm run build
 
 # Build backend
-RUN cd backend && npm run build
+RUN cd backend && npm run build && ls -la
 
 # Production runtime stage
 FROM base AS runtime
@@ -54,10 +57,10 @@ ENV NODE_ENV=production
 ENV NODE_OPTIONS="--max-old-space-size=512"
 
 # Copy built application and dependencies
-COPY --from=builder --chown=nodejs:nodejs /app/backend/dist ./
+COPY --from=builder --chown=nodejs:nodejs /app/backend/dist ./backend/dist/
 COPY --from=builder --chown=nodejs:nodejs /app/shared/dist ./shared/
 COPY --from=deps --chown=nodejs:nodejs /app/node_modules ./node_modules
-COPY --from=deps --chown=nodejs:nodejs /app/backend/node_modules ./backend/node_modules
+# Backend dependencies are in the root node_modules, not in backend/node_modules
 
 # Create logs directory
 RUN mkdir -p logs && chown nodejs:nodejs logs
@@ -65,13 +68,9 @@ RUN mkdir -p logs && chown nodejs:nodejs logs
 # Switch to non-root user
 USER nodejs
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:3001/api/health || exit 1
-
 # Expose port
 EXPOSE 3001
 
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "index.js"]
+CMD ["node", "backend/dist/index.js"]

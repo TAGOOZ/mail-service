@@ -5,7 +5,6 @@ RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
     postfix \
     postfix-pcre \
-    rsyslog \
     supervisor \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
@@ -23,11 +22,6 @@ COPY config/postfix/transport /etc/postfix/transport
 RUN echo '[supervisord]' > /etc/supervisor/conf.d/supervisord.conf && \
     echo 'nodaemon=true' >> /etc/supervisor/conf.d/supervisord.conf && \
     echo 'user=root' >> /etc/supervisor/conf.d/supervisord.conf && \
-    echo '' >> /etc/supervisor/conf.d/supervisord.conf && \
-    echo '[program:rsyslog]' >> /etc/supervisor/conf.d/supervisord.conf && \
-    echo 'command=/usr/sbin/rsyslogd -n' >> /etc/supervisor/conf.d/supervisord.conf && \
-    echo 'autostart=true' >> /etc/supervisor/conf.d/supervisord.conf && \
-    echo 'autorestart=true' >> /etc/supervisor/conf.d/supervisord.conf && \
     echo '' >> /etc/supervisor/conf.d/supervisord.conf && \
     echo '[program:postfix]' >> /etc/supervisor/conf.d/supervisord.conf && \
     echo 'command=/usr/sbin/postfix start-fg' >> /etc/supervisor/conf.d/supervisord.conf && \

@@ -1,10 +1,11 @@
 # Postfix main configuration for production mail forwarding
-# This configuration receives mail on port 25 and forwards to backend:2525
+# This configuration receives mail on port 25 and forwards to the backend service
+# The backend host is configured via the POSTFIX_BACKEND_HOST environment variable
 
 # Basic settings
-myhostname = ${POSTFIX_MYHOSTNAME}
-mydomain = ${POSTFIX_MYDOMAIN}
-myorigin = ${POSTFIX_MYORIGIN}
+myhostname = mail.nnu.edu.kg
+mydomain = nnu.edu.kg
+myorigin = nnu.edu.kg
 
 # Network settings
 inet_interfaces = all
@@ -15,8 +16,7 @@ mydestination =
 local_recipient_maps = 
 local_transport = error:Local delivery disabled
 
-# Virtual domain handling
-virtual_regexp_maps = regexp:/etc/postfix/virtual_regexp
+# Transport maps for routing
 transport_maps = regexp:/etc/postfix/transport_regexp
 
 # Security settings

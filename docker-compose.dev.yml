@@ -73,7 +73,7 @@ services:
       RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS}
       RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS}
       # Enable polling for file watching in Docker
-      CHOKIDAR_USEPOLLING: true
+      CHOKIDAR_USEPOLLING: "true"
       CHOKIDAR_INTERVAL: 1000
     ports:
       - '127.0.0.1:${BACKEND_PORT}:${BACKEND_PORT}' # Bind to localhost only, nginx will proxy
@@ -116,8 +116,11 @@ services:
       VITE_DOMAIN: ${VITE_DOMAIN}
       # Security settings
       VITE_LOG_LEVEL: DEBUG
+      # Development settings for Vite
+      VITE_API_URL: http://localhost:${BACKEND_PORT}
+      VITE_MAIL_DOMAIN: ${MAIL_DOMAIN}
       # Enable polling for file watching in Docker
-      CHOKIDAR_USEPOLLING: true
+      CHOKIDAR_USEPOLLING: "true"
       CHOKIDAR_INTERVAL: 1000
       # Vite specific settings for hot reload
       VITE_HOST: 0.0.0.0
@@ -141,9 +144,10 @@ services:
       - ./frontend/tailwind.config.js:/app/frontend/tailwind.config.js
       - ./frontend/postcss.config.js:/app/frontend/postcss.config.js
       # Exclude node_modules to avoid permission issues
-      - /app/node_modules
-      - /app/frontend/node_modules
-      - /app/shared/node_modules
+      # These lines are removed to allow the container to use its own node_modules
+      # - /app/node_modules
+      # - /app/frontend/node_modules
+      # - /app/shared/node_modules
 
   # MailHog for email visualization and testing
   mailhog:
@@ -158,21 +162,23 @@ services:
     networks:
       - tempmail-dev-network
 
-  # Simple mail forwarder (forwards port 25 to backend:2525)
-  mail-forwarder:
-    image: alpine:latest
-    container_name: tempmail-forwarder-dev
+  # Mail server (Postfix) - Acts as SMTP frontend, forwards to backend
+  mailserver:
+    build:
+      context: .
+      dockerfile: Dockerfile.postfix
+    container_name: tempmail-mailserver-dev
     restart: unless-stopped
     env_file:
       - .env
-    command: >
-      sh -c "
-        apk add --no-cache socat &&
-        echo 'Starting mail forwarder: 25 -> backend-dev:2525' &&
-        socat TCP-LISTEN:25,fork,reuseaddr TCP:backend-dev:2525
-      "
+    environment:
+      POSTFIX_MYHOSTNAME: ${POSTFIX_MYHOSTNAME}
+      POSTFIX_MYDOMAIN: ${POSTFIX_MYDOMAIN}
+      POSTFIX_MYORIGIN: ${POSTFIX_MYORIGIN}
+      POSTFIX_BACKEND_HOST: backend-dev
     ports:
       - '25:25' # Standard SMTP port for external emails
+      - '587:587' # SMTP submission port
     depends_on:
       - backend-dev
     networks:

@@ -33,7 +33,18 @@ import { webSocketService } from './services/websocketService';
 import { mailWebSocketIntegration } from './services/mailWebSocketIntegration';
 
 // Load environment variables from root directory
-dotenv.config({ path: '../.env' });
+// Only load if the file exists
+try {
+  const fs = require('fs');
+  const path = require('path');
+  const envPath = path.resolve(__dirname, '../.env');
+  if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+  }
+} catch (error: any) {
+  // If dotenv fails, continue with environment variables from Docker
+  console.warn('Could not load .env file, using environment variables from Docker:', error.message);
+}
 
 const app = express();
 const httpServer = createServer(app);
@@ -87,7 +98,7 @@ const getCorsOptions = () => {
     process.env.FRONTEND_URL ||
     'http://localhost:3000';
   const additionalOrigins = process.env.CORS_ADDITIONAL_ORIGINS
-    ? process.env.CORS_ADDITIONAL_ORIGINS.split(',').map(origin =>
+    ? process.env.CORS_ADDITIONAL_ORIGINS.split(',').map((origin: string) =>
         origin.trim()
       )
     : [];
@@ -97,10 +108,10 @@ const getCorsOptions = () => {
   // Parse other CORS settings
   const credentials = process.env.CORS_CREDENTIALS === 'true';
   const methods = process.env.CORS_METHODS
-    ? process.env.CORS_METHODS.split(',').map(method => method.trim())
+    ? process.env.CORS_METHODS.split(',').map((method: string) => method.trim())
     : ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'];
   const allowedHeaders = process.env.CORS_ALLOWED_HEADERS
-    ? process.env.CORS_ALLOWED_HEADERS.split(',').map(header => header.trim())
+    ? process.env.CORS_ALLOWED_HEADERS.split(',').map((header: string) => header.trim())
     : [
         'Content-Type',
         'Authorization',
@@ -110,22 +121,21 @@ const getCorsOptions = () => {
         'X-CSRF-Token',
       ];
   const exposedHeaders = process.env.CORS_EXPOSED_HEADERS
-    ? process.env.CORS_EXPOSED_HEADERS.split(',').map(header => header.trim())
+    ? process.env.CORS_EXPOSED_HEADERS.split(',').map((header: string) => header.trim())
     : ['X-CSRF-Token'];
 
   return {
-    origin: function (origin: string | undefined, callback: Function) {
+    origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
       // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
 
       // In development, be more permissive with localhost
       if (process.env.NODE_ENV === 'development') {
-        if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+        if (origin.includes('localhost') || origin.includes('0.0.0.0')) {
           return callback(null, true);
         }
       }
 
-      // Check against configured allowed origins
       if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -214,7 +224,7 @@ app.get('/health', async (req, res) => {
       uptime: process.uptime(),
       database: dbHealth,
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Health check failed:', error);
     res.status(503).json({
       status: 'error',
@@ -234,7 +244,7 @@ app.get('/health/migrations', async (req, res) => {
   try {
     const migrationStatus = await DatabaseService.getMigrationStatus();
     res.status(200).json(migrationStatus);
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Migration status check failed:', error);
     res.status(500).json({
       error: {
@@ -269,15 +279,15 @@ app.get('/health/cleanup', async (req, res) => {
 // Mail service status endpoint
 app.get('/health/mail', async (req, res) => {
   try {
-    const mailServiceStatus = mailReceivingService.getStatus();
-    const mailHogStatus = mailHogForwardingService.getStatus();
+    const mailServiceStatus = await mailReceivingService.getStatus();
+    const mailHogStatus = await mailHogForwardingService.getStatus();
 
     res.status(200).json({
       mailService: mailServiceStatus,
       mailHogForwarding: mailHogStatus,
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Mail service status check failed:', error);
     res.status(500).json({
       error: {
@@ -292,12 +302,12 @@ app.get('/health/mail', async (req, res) => {
 // WebSocket service status endpoint
 app.get('/health/websocket', async (req, res) => {
   try {
-    const wsStats = webSocketService.getStats();
+    const wsStats = await webSocketService.getStats();
     res.status(200).json({
       websocket: wsStats,
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('WebSocket service status check failed:', error);
     res.status(500).json({
       error: {
@@ -312,14 +322,14 @@ app.get('/health/websocket', async (req, res) => {
 // Mail-WebSocket integration status endpoint
 app.get('/health/integration', async (req, res) => {
   try {
-    const integrationStats = mailWebSocketIntegration.getDetailedStats();
+    const integrationStats = await mailWebSocketIntegration.getDetailedStats();
     const statusCode = integrationStats.isHealthy ? 200 : 503;
 
     res.status(statusCode).json({
       integration: integrationStats,
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Integration status check failed:', error);
     res.status(500).json({
       error: {
@@ -590,9 +600,9 @@ async function setupMailWebSocketIntegration(): Promise<void> {
         ],
       }
     );
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Failed to setup Mail-WebSocket integration:', error);
-    throw error;
+    throw new Error(`Mail-WebSocket integration setup failed: ${error.message}`);
   }
 }
 
@@ -628,8 +638,9 @@ async function startServer() {
 
     // Start server only if not in test environment
     if (process.env.NODE_ENV !== 'test') {
-      const server = httpServer.listen(PORT, () => {
-        logger.info(`Server running on port ${PORT}`);
+      const HOST = process.env.HOST || '0.0.0.0';
+      const server = httpServer.listen(Number(PORT), HOST, () => {
+        logger.info(`Server running on ${HOST}:${PORT}`);
         logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
         logger.info('WebSocket server initialized');
       });
@@ -667,8 +678,9 @@ async function startServer() {
             await DatabaseService.shutdown();
             logger.info('Process terminated');
             process.exit(0);
-          } catch (error) {
+          } catch (error: any) {
             logger.error('Error during shutdown:', error);
+            console.error('Shutdown failed:', error.message);
             process.exit(1);
           }
         });
@@ -677,8 +689,9 @@ async function startServer() {
       process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
       process.on('SIGINT', () => gracefulShutdown('SIGINT'));
     }
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Failed to start server:', error);
+    console.error('Server startup failed:', error.message);
     process.exit(1);
   }
 }

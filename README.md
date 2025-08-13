@@ -1,103 +1,124 @@
-# 临时邮箱系统
+# Temporary Email System
 
-一个基于 Node.js 和 React 的临时邮箱系统，支持接收和管理临时邮件。
+A temporary email system based on Node.js and React, supporting receiving and managing temporary emails.
 
-## 📋 快速导航
+## 📋 Quick Navigation
 
-| 场景            | 推荐文档                                      | 脚本工具                         |
-| --------------- | --------------------------------------------- | -------------------------------- |
-| 🚀 **首次部署** | [生产环境部署](docs/PRODUCTION_DEPLOYMENT.md) | `./scripts/deploy-production.sh` |
-| 🛠️ **开发调试** | [邮件系统架构](docs/MAIL_ARCHITECTURE.md)     | `./scripts/dev-start.sh`         |
-| 🔧 **配置修改** | [配置文件说明](config/README.md)              | `./scripts/validate-all.sh`      |
-| 🐛 **故障排除** | [运维手册](docs/OPERATIONS_RUNBOOK.md)        | `./scripts/health-check.sh`      |
-| 📊 **系统监控** | [备份与清理](docs/BACKUP_CLEANUP_GUIDE.md)    | `./scripts/backup-cleanup.sh`    |
+| Scenario | Recommended Documentation | Script Tools |
+| --- | --- | --- |
+| 🚀 **First Deployment** | [Production Environment Deployment](docs/PRODUCTION_DEPLOYMENT.md) | `./scripts/deploy-production.sh` |
+| 🛠️ **Development Debugging** | [Mail System Architecture](docs/MAIL_ARCHITECTURE.md) | `./scripts/dev-start.sh` |
+| 🔧 **Configuration Changes** | [Configuration File Description](config/README.md) | `./scripts/validate-all.sh` |
+| 🐛 **Troubleshooting** | [Operations Manual](docs/OPERATIONS_RUNBOOK.md) | `./scripts/health-check.sh` |
+| 📊 **System Monitoring** | [Backup and Cleanup](docs/BACKUP_CLEANUP_GUIDE.md) | `./scripts/backup-cleanup.sh` |
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-### 1. 生成配置文件
+### 1. Generate Configuration File
 
 ```bash
-# 交互式生成 .env 配置文件
+# Interactively generate .env configuration file
 ./scripts/generate-env-config.sh
 
-# 或者手动复制并编辑
+# Or manually copy and edit
 cp .env.example .env
-# 编辑 .env 文件，设置你的配置
+# Edit .env file, set your configuration
 ```
 
-### 2. 开发环境
+### 2. Development Environment
 
 ```bash
-# 启动开发环境（自动验证配置）
+# Start development environment (automatically validate configuration)
 ./scripts/dev-start.sh
 
-# 测试邮件功能
+# Test mail functionality
 ./scripts/test-mail-forwarding.sh
 
-# 测试热加载功能
+# Test hot reload functionality
 ./scripts/dev-hot-reload-test.sh
 
-# 查看服务日志
+# View service logs
 docker-compose -f docker-compose.dev.yml logs -f backend-dev
 docker-compose -f docker-compose.dev.yml logs -f frontend-dev
 ```
 
-**访问地址:**
+**Access Addresses:**
 
-- 前端: http://localhost:3000
-- 后端 API: http://localhost:3001
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:3001
 - MailHog UI: http://localhost:8025
 
-### 3. 生产环境
+### 3. Production Environment
 
 ```bash
-# 启动生产环境（自动验证配置）
+# Start production environment (automatically validate configuration)
 ./scripts/prod-start.sh
 
-# 验证邮件服务器配置
+# Validate mail server configuration
 ./scripts/validate-all.sh --mailserver-only
 ```
 
-### 4. 配置验证
+### 4. Configuration Validation
 
 ```bash
-# 验证环境变量配置
+# Validate environment variable configuration
 ./scripts/validate-env-config.sh
 
-# 验证所有配置（部署前）
+# Validate all configurations (before deployment)
 ./scripts/validate-all.sh
 
-# 检查运行时状态（部署后）
+# Check runtime status (after deployment)
 ./scripts/check-environment.sh
 
-# 检查运行时服务状态
+# Check runtime service status
 ./scripts/check-environment.sh
 ```
 
-2. **启动生产环境**
-   ```bash
-   ./scripts/prod-start.sh
-   ```
+## 📧 Mail System Architecture
 
-## 📧 邮件系统架构
-
-### 开发环境
+### Development Environment
 
 ```
-外部邮件 → 端口 25 (socat) → backend:2525 → 数据库 + MailHog转发
+External Mail → Port 25 (Postfix) → backend:2525 → Database + MailHog Forwarding
 ```
 
-### 生产环境
+### Production Environment
 
 ```
-外部邮件 → 端口 25 (Postfix) → backend:2525 → 数据库
+External Mail → Port 25 (Postfix) → backend:2525 → Database
 ```
 
-## 🛠️ 管理脚本
+## 🛠️ Management Scripts
 
-### 开发环境
+### Development Environment
 
-- **启动开发环境**: `./scripts/dev-start.sh`
+- **Start Development Environment**: `./scripts/dev-start.sh`
+
+## 📝 Codebase Overview
+
+Based on analysis of the codebase, this is a temporary email system built using the following technologies:
+
+### Project Structure
+- **Frontend**: React 18 with TypeScript, Tailwind CSS for styling, and Socket.io for real-time communication
+- **Backend**: Node.js with Express and TypeScript, handling email reception and storage
+- **Mail Processing**: Uses Postfix for both production and development
+- **Database**: MongoDB for storing emails and Redis for caching
+- **Infrastructure**: Docker and Docker Compose for containerization, Nginx for reverse proxy
+
+### Key Features
+1. Temporary email address generation
+2. Real-time email reception via WebSockets
+3. Email viewing and management
+4. Privacy-focused with automatic cleanup
+5. Development environment with debugging tools
+6. Production-ready deployment scripts
+
+### Main Components
+- Email receiving service that processes incoming mail
+- WebSocket integration for real-time updates
+- Frontend UI with responsive design
+- Comprehensive monitoring and backup tools
+- Extensive testing suite including E2E tests with Playwright
 - **邮件功能测试**: `./scripts/test-mail-forwarding.sh`
 - **配置验证**: `./scripts/validate-all.sh`
 - **环境状态检查**: `./scripts/check-environment.sh`

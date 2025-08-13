@@ -43,7 +43,7 @@ config/
 1. **接收邮件**: Postfix 在端口 25 接收外部邮件
 2. **域名验证**: 使用 `virtual_regexp` 验证收件人域名
 3. **路由决策**: 使用 `transport_regexp` 决定邮件转发目标
-4. **转发邮件**: 将邮件转发到 backend:2525 进行处理
+4. **转发邮件**: 将邮件转发到后端服务进行处理（通过 POSTFIX_BACKEND_HOST 环境变量配置）
 
 ### 环境变量
 
@@ -52,10 +52,11 @@ config/
 - `POSTFIX_MYHOSTNAME` - 邮件服务器主机名
 - `POSTFIX_MYDOMAIN` - 邮件服务器域名
 - `POSTFIX_MYORIGIN` - 邮件来源域名
+- `POSTFIX_BACKEND_HOST` - 后端服务主机名（用于邮件转发）
 
 ### 使用方法
 
-1. **开发环境**: 不使用 Postfix，使用 socat 转发
+1. **开发环境**: 使用 Postfix 作为标准 SMTP 服务器
 2. **生产环境**: 使用 Postfix 作为标准 SMTP 服务器
 
 ## 其他配置

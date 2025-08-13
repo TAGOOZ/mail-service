@@ -1,3 +1,4 @@
-# Transport mapping - forward all mail to backend:2525
+# Transport mapping - forward all mail to the backend service
 # All emails to @nnu.edu.kg should be forwarded to the backend service
-/^(.+)@nnu\.edu\.kg$/    smtp:[backend]:2525
+# The backend host is configured via the POSTFIX_BACKEND_HOST environment variable
+/^(.+)@nnu\.edu\.kg$/    smtp:[BACKEND_HOST]:2525

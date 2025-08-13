@@ -1,4 +1,4 @@
-import { PushMessageFormatter } from '../../services/pushMessageFormatter';
+`import { PushMessageFormatter } from '../../services/pushMessageFormatter';
 
 describe('PushMessageFormatter', () => {
   describe('formatNewMailMessage', () => {

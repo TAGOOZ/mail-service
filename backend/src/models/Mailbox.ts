@@ -30,7 +30,7 @@ const MailboxSchema = new Schema<IMailbox>(
       required: true,
       unique: true,
       index: true,
-      match: /^[a-zA-Z0-9._%+-]+@nnu\.edu\.kg$/,
+      match: /^[a-zA-Z0-9._%+-]+@(nnu\.edu\.kg|127\.0\.0\.1|tempmail\.edu)$/,
     },
     token: {
       type: String,

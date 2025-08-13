@@ -42,10 +42,20 @@
     "test:performance:headed": "playwright test e2e/performance.spec.ts e2e/performance-comprehensive.spec.ts --headed",
     "performance:monitor": "node scripts/performance-monitor.js",
     "performance:optimize": "cd backend && npx ts-node src/scripts/performance-optimization.ts",
-    "performance:report": "npm run performance:monitor -- --report-path ./performance-reports"
+    "performance:report": "npm run performance:monitor -- --report-path ./performance-reports",
+    "prod:start": "./scripts/start-production.sh",
+    "prod:stop": "./scripts/stop-production.sh",
+    "prod:restart": "./scripts/restart-production.sh",
+    "prod:deploy": "./scripts/deploy-production.sh deploy",
+    "prod:status": "./scripts/deploy-production.sh status",
+    "prod:logs": "./scripts/deploy-production.sh logs",
+    "prod:health": "./scripts/health-check.sh",
+    "prod:validate": "./scripts/validate-production-env.sh",
+    "prod:backup": "./scripts/backup-production.sh"
   },
   "devDependencies": {
     "@playwright/test": "^1.54.2",
+    "@types/node": "^24.2.1",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "concurrently": "^8.2.0",

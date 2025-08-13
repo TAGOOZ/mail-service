@@ -1,0 +1,6 @@
+From: test@example.com
+To: 27a93ac2luhg@tempmail.edu
+Subject: Test Email
+Content-Type: text/plain; charset=utf-8
+
+这是一封测试邮件，用于验证临时邮箱功能。

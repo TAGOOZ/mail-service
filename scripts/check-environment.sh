@@ -150,7 +150,7 @@ echo "🎯 Summary:"
 echo "   Environment: $ENV_TYPE"
 echo "   Mail Processing: Backend on port 2525"
 if [ "$ENV_TYPE" = "Development" ]; then
-    echo "   Mail Frontend: Port 25 (socat forwarder)"
+    echo "   Mail Frontend: Port 25 (Postfix mail server)"
     echo "   Debug Tool: MailHog on port 1025/8025"
 else
     echo "   Mail Frontend: Port 25 (Postfix)"

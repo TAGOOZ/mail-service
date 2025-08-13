@@ -11,7 +11,7 @@
 ```
 外部邮件发送者
        ↓
-   端口 25 (socat 转发器)
+   端口 25 (Postfix 邮件服务器)
        ↓
    backend:2525 (邮件处理服务)
        ↓
@@ -26,7 +26,7 @@ MongoDB 存储    MailHog 转发    WebSocket 推送
 
 - ✅ MailHog 提供邮件可视化界面
 - ✅ 所有邮件都会转发到 MailHog 进行调试
-- ✅ 使用 socat 进行简单的端口转发
+- ✅ 使用 Postfix 进行标准 SMTP 服务
 - ✅ 支持热重载和调试模式
 
 ### 生产环境 (Production)
@@ -69,7 +69,7 @@ MongoDB 存储    日志记录        WebSocket 推送
 | -------------- | ---- | -------------- |
 | MailHog SMTP   | 1025 | 邮件捕获       |
 | MailHog UI     | 8025 | 邮件可视化界面 |
-| Mail Forwarder | 25   | 简单端口转发   |
+| Postfix        | 25   | 标准 SMTP 服务器 |
 | Frontend Dev   | 3000 | 开发服务器     |
 
 ### 生产环境专用
@@ -131,7 +131,7 @@ open http://localhost:8025
 
 ### 1. 邮件接收
 
-- **开发**: socat 转发 → backend:2525
+- **开发**: Postfix 转发 → backend:2525
 - **生产**: Postfix 转发 → backend:2525
 
 ### 2. 邮件解析
@@ -210,7 +210,7 @@ config/
 3. **Postfix 转发失败**
    - 检查 `config/postfix/main.cf` 配置
    - 验证 `config/postfix/transport_regexp` 映射
-   - 确认 backend:2525 连接
+   - 确认后端服务连接
    - 查看 Postfix 日志
 
 ### 日志位置

@@ -14,10 +14,10 @@ if [ -z "$target" ]; then
 fi
 
 # 创建测试邮件内容
-cat << 'EOF' > send_test_email.txt
+cat << EOF > send_test_email.txt
 From: test@example.com
-To: ${target}
-Subject: 测试邮件
+To: $target
+Subject: Test Email
 Content-Type: text/plain; charset=utf-8
 
 这是一封测试邮件，用于验证临时邮箱功能。

@@ -464,15 +464,15 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
                 <h4 className="font-medium text-gray-700 mb-3">性能预算</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">< 3s</div>
+                    <div className="text-2xl font-bold text-blue-600">&lt; 3s</div>
                     <div className="text-sm text-gray-600">页面加载时间</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">< 50MB</div>
+                    <div className="text-2xl font-bold text-green-600">&lt; 50MB</div>
                     <div className="text-sm text-gray-600">内存使用上限</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-purple-600">< 2s</div>
+                    <div className="text-2xl font-bold text-purple-600">&lt; 2s</div>
                     <div className="text-sm text-gray-600">API响应时间</div>
                   </div>
                 </div>
