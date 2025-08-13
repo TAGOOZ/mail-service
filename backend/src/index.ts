@@ -8,11 +8,7 @@ import { createServer } from 'http';
 
 import { errorHandler } from './middleware/errorHandler';
 import { authMiddleware } from './middleware/auth';
-import {
-  csrfMiddleware,
-  getCsrfToken,
-  addCsrfTokenHeader,
-} from './middleware/csrf';
+// CSRF middleware removed for better compatibility
 import { rateLimiters } from './middleware/rateLimiting';
 import {
   securityMonitoringMiddleware,
@@ -170,15 +166,11 @@ app.use(cors(corsOptions));
 // Rate limiting with enhanced security
 app.use('/api', rateLimiters.general);
 
-// Body parsing middleware (must come before CSRF)
+// Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// CSRF protection (after body parsing)
-app.use(csrfMiddleware);
-
-// Add CSRF token to response headers
-app.use(addCsrfTokenHeader);
+// CSRF protection removed for better compatibility
 
 // Logging middleware
 app.use(
@@ -191,8 +183,7 @@ app.use(
   })
 );
 
-// CSRF token endpoint
-app.get('/api/csrf-token', getCsrfToken);
+// CSRF token endpoint removed
 
 // Security statistics endpoint (protected)
 app.get('/api/security/stats', authMiddleware, (req, res) => {
@@ -213,6 +204,34 @@ app.get('/api/security/stats', authMiddleware, (req, res) => {
 
 // Health check endpoint
 app.get('/health', async (req, res) => {
+  try {
+    const dbHealth = await DatabaseService.getHealthStatus();
+    const status = dbHealth.overall ? 'ok' : 'degraded';
+    const statusCode = dbHealth.overall ? 200 : 503;
+
+    res.status(statusCode).json({
+      status,
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      database: dbHealth,
+    });
+  } catch (error: any) {
+    logger.error('Health check failed:', error);
+    res.status(503).json({
+      status: 'error',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      database: {
+        mongodb: false,
+        redis: false,
+        overall: false,
+      },
+    });
+  }
+});
+
+// API Health check endpoint (for nginx proxy)
+app.get('/api/health', async (req, res) => {
   try {
     const dbHealth = await DatabaseService.getHealthStatus();
     const status = dbHealth.overall ? 'ok' : 'degraded';

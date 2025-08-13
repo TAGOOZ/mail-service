@@ -29,7 +29,15 @@ export const csrfMiddleware = (
   next: NextFunction
 ) => {
   // Skip CSRF for health checks and public endpoints
-  if (req.path.startsWith('/health') || req.path === '/api/csrf-token') {
+  if (req.path.startsWith('/health') || 
+      req.path === '/api/csrf-token' || 
+      req.path === '/api/health' ||
+      req.path === '/api/mailbox/generate') {
+    return next();
+  }
+
+  // In production, for GET requests, skip CSRF (for better compatibility)
+  if (process.env.NODE_ENV === 'production' && req.method === 'GET') {
     return next();
   }
 

@@ -1,0 +1,11 @@
+HELO test.com
+MAIL FROM:<test@example.com>
+RCPT TO:<58b1ea1bn3n8@nnu.edu.kg>
+DATA
+From: test@example.com
+To: 58b1ea1bn3n8@nnu.edu.kg
+Subject: Test Email
+
+This is a test email to verify the mail system works!
+.
+QUIT

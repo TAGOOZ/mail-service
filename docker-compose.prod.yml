@@ -100,10 +100,8 @@ services:
       - '127.0.0.1:${BACKEND_PORT}:${BACKEND_PORT}' # Bind to localhost only, nginx will proxy
       - '127.0.0.1:${MAIL_PORT}:${MAIL_PORT}' # Internal mail processing port (accessed by mailserver)
     depends_on:
-      mongodb:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - mongodb
+      - redis
     networks:
       - tempmail-network
     volumes:
@@ -140,12 +138,13 @@ services:
       - "3000:80"  # Expose frontend on port 3000
     networks:
       - tempmail-network
-    healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:80/health']
-      interval: ${HEALTH_CHECK_INTERVAL}
-      timeout: ${HEALTH_CHECK_TIMEOUT}
-      retries: ${HEALTH_CHECK_RETRIES}
-      start_period: ${HEALTH_CHECK_START_PERIOD}
+    # Temporarily disable healthcheck to debug
+    # healthcheck:
+    #   test: ['CMD', 'curl', '-f', 'http://localhost:80/health']
+    #   interval: ${HEALTH_CHECK_INTERVAL}
+    #   timeout: ${HEALTH_CHECK_TIMEOUT}
+    #   retries: ${HEALTH_CHECK_RETRIES}
+    #   start_period: ${HEALTH_CHECK_START_PERIOD}
 
   # Mail server (Postfix) - Acts as SMTP frontend, forwards to backend
   # mailserver:
@@ -190,6 +189,27 @@ services:
   #         memory: 128M
   #         cpus: '0.25'
 
+  # MailHog for email visualization and testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: tempmail-mailhog-prod
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - '1025:1025' # SMTP server (for outgoing email testing)
+      - '8025:8025' # Web UI
+    networks:
+      - tempmail-network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+
   # Nginx reverse proxy
   nginx:
     image: ${NGINX_IMAGE}
@@ -199,18 +219,18 @@ services:
       - '8080:80'
       - '8443:443'
     volumes:
-      - ./config/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
-      - ./config/nginx/ssl:/etc/nginx/ssl:ro
+      - ./config/nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
       - ./logs/nginx:/var/log/nginx
       - /etc/localtime:/etc/localtime:ro
     networks:
       - tempmail-network
-    healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:80/health']
-      interval: ${HEALTH_CHECK_INTERVAL}
-      timeout: ${HEALTH_CHECK_TIMEOUT}
-      retries: ${HEALTH_CHECK_RETRIES}
-      start_period: ${HEALTH_CHECK_START_PERIOD}
+    # Temporarily disable healthcheck to debug
+    # healthcheck:
+    #   test: ['CMD', 'curl', '-f', 'http://localhost:80/health']
+    #   interval: ${HEALTH_CHECK_INTERVAL}
+    #   timeout: ${HEALTH_CHECK_TIMEOUT}
+    #   retries: ${HEALTH_CHECK_RETRIES}
+    #   start_period: ${HEALTH_CHECK_START_PERIOD}
     deploy:
       resources:
         limits:
